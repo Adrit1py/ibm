@@ -143,8 +143,8 @@ describe('Patch Generator Test Suite', () => {
     assert.ok(asyncPatch);
     assert.ok(asyncPatch.diff.includes('AbortController') || asyncPatch.diff.includes('asyncQueue'));
 
-    const spofPatch = patches.find((p) => p.resilience_pattern === 'bulkhead_isolation');
-    assert.ok(spofPatch);
+    const spofPatch = patches.find((p) => p.resilience_pattern === 'graceful_degradation');
+    assert.ok(spofPatch, 'SPOF patch should use graceful_degradation pattern');
     assert.ok(spofPatch.diff.includes('failover'));
   });
 

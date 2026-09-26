@@ -240,9 +240,11 @@ function extractParameters(normalized: string): ScenarioParameters {
     if (secLatencyMatch) p.latency_increase_ms = parseFloat(secLatencyMatch[1]) * 1_000;
   }
 
-  // Latency multiplier — "10x slower", "5x latency"
-  const multMatch = normalized.match(/(\d+(?:\.\d+)?)x\s+(?:slower|latency|increase)/);
-  if (multMatch) p.latency_multiplier = parseFloat(multMatch[1]);
+  // Latency multiplier — "10x slower", "5x latency", "spikes 10x", "10x higher"
+  const multMatch = normalized.match(
+    /(\d+(?:\.\d+)?)x\s+(?:slower|latency|increase|higher|worse)|(?:spikes?\s+(?:to\s+)?)(\d+(?:\.\d+)?)x\b/,
+  );
+  if (multMatch) p.latency_multiplier = parseFloat(multMatch[1] ?? multMatch[2]);
 
   // Error rate — "90% error rate" or "error rate of 0.9"
   const errPctMatch = normalized.match(/(\d+(?:\.\d+)?)\s*%\s*(?:error|failure)\s*rate/);

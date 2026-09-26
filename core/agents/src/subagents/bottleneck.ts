@@ -61,6 +61,7 @@ export class LatencyBottleneckSubagent {
     digitalTwin: DigitalTwinSchema,
     targetNodeIds: string[],
     scenario: string,
+    parsedLatencyMultiplier?: number,
   ): Promise<BottleneckAnalysisResult> {
     const rootCauses: RootCause[] = [];
     const saturatedPools: string[] = [];
@@ -72,7 +73,8 @@ export class LatencyBottleneckSubagent {
       scenarioLower.includes('slow') ||
       scenarioLower.includes('latency') ||
       scenarioLower.includes('timeout') ||
-      scenarioLower.includes('delay');
+      scenarioLower.includes('delay') ||
+      scenarioLower.includes('spike');
 
     const targetSet = new Set(targetNodeIds);
 
@@ -101,7 +103,12 @@ export class LatencyBottleneckSubagent {
       }
     }
 
-    const maxLatencyMultiplier = isLatencyScenario ? 10.0 : 3.5;
+    const maxLatencyMultiplier =
+      parsedLatencyMultiplier !== undefined
+        ? parsedLatencyMultiplier
+        : isLatencyScenario
+          ? 10.0
+          : 3.5;
 
     // LLM enrichment: ask for additional latency amplification paths
     const llmNotes = await this.enrichWithLLM(scenario, digitalTwin, targetNodeIds);
@@ -169,13 +176,15 @@ export class LatencyBottleneckSubagent {
 
     if (poolSize === undefined || poolSize > POOL_SIZE_SAFE_LIMIT) {
       saturatedPools.push(node.id);
+      const poolDescription = poolSize === undefined
+        ? `Node ${node.name} has no connection pool limit (unbounded), risking thread exhaustion under load.`
+        : `Node ${node.name} has an oversized connection pool (${poolSize} connections) ` +
+          `exceeding the safe limit of ${POOL_SIZE_SAFE_LIMIT}, risking thread starvation under latency spikes.`;
       rootCauses.push({
         id: `rc-pool-${node.id}`,
         node_id: node.id,
         vulnerability_type: 'unbounded_connection_pool',
-        description:
-          `Node ${node.name} ${poolSize === undefined ? 'has no' : `has a ${poolSize}-connection`} ` +
-          `pool limit, exposing it to thread starvation under latency spikes.`,
+        description: poolDescription,
         severity: 'high',
         file_target: node.file_path,
         code_reference: node.code_snippet,
@@ -184,12 +193,19 @@ export class LatencyBottleneckSubagent {
     }
   }
 
-  /** Flags nodes with excessively tight timeout budgets. */
+  /** Flags nodes with excessively tight timeout budgets.
+   *
+   * Skips cache and queue nodes — sub-500ms timeouts are intentional and
+   * correct for those component types (fast-fail on cache miss is desirable).
+   */
   private checkTightTimeout(
     node: DigitalTwinNode,
     config: NonNullable<DigitalTwinNode['config']>,
     rootCauses: RootCause[],
   ): void {
+    // Cache and queue timeouts are deliberately short — not a vulnerability
+    if (node.type === 'cache' || node.type === 'queue') return;
+
     const timeoutMs = config.timeout_ms;
 
     if (timeoutMs !== undefined && timeoutMs < TIGHT_TIMEOUT_THRESHOLD_MS) {

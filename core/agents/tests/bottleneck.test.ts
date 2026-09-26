@@ -32,9 +32,45 @@ describe('LatencyBottleneckSubagent', () => {
     assert.equal(result.diagnostics.max_latency_multiplier, 3.5);
   });
 
-  test('Tight timeout detection is scope-independent', async () => {
+  test('"spike" keyword triggers latency scenario (10x multiplier)', async () => {
     const result = await subagent.analyze(
       sampleEcommerceGraph,
+      ['redis-cache'],
+      'CPU spike causes database to become unresponsive',
+    );
+
+    assert.equal(result.diagnostics.max_latency_multiplier, 10.0);
+  });
+
+  test('parsedLatencyMultiplier overrides heuristic default', async () => {
+    const result = await subagent.analyze(
+      sampleEcommerceGraph,
+      ['redis-cache'],
+      'Redis cache goes completely offline',
+      7.5,
+    );
+
+    assert.equal(result.diagnostics.max_latency_multiplier, 7.5);
+  });
+
+  test('Tight timeout detection fires on services but skips cache/queue nodes', async () => {
+    // Use a graph that has a service with a tight timeout
+    const graphWithTightServiceTimeout = {
+      ...sampleEcommerceGraph,
+      nodes: [
+        ...sampleEcommerceGraph.nodes,
+        {
+          id: 'fast-service',
+          name: 'Fast Service',
+          type: 'service' as const,
+          file_path: 'src/services/fast.ts',
+          config: { timeout_ms: 100 },
+        },
+      ],
+    };
+
+    const result = await subagent.analyze(
+      graphWithTightServiceTimeout,
       ['order-service'],
       'Order service crashes',
     );
@@ -42,10 +78,17 @@ describe('LatencyBottleneckSubagent', () => {
     const timeoutRcs = result.root_causes.filter(
       (r) => r.vulnerability_type === 'tight_timeout',
     );
-    // redis-cache has timeout_ms: 200 which is < 500
+
+    // fast-service (type: service, 100ms) should be flagged
     assert.ok(
-      timeoutRcs.some((r) => r.node_id === 'redis-cache'),
-      'Redis tight timeout detected globally',
+      timeoutRcs.some((r) => r.node_id === 'fast-service'),
+      'Service with 100ms timeout should be flagged',
+    );
+
+    // redis-cache (type: cache, 200ms) must NOT be flagged — intentionally fast
+    assert.ok(
+      !timeoutRcs.some((r) => r.node_id === 'redis-cache'),
+      'Cache nodes must be exempt from tight_timeout detection',
     );
   });
 });

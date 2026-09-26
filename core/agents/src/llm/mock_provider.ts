@@ -47,13 +47,20 @@ export class MockLLMProvider implements LLMProvider {
 
   async generateStructuredJson<T>(
     prompt: string,
-    _schemaDescription: string,
+    schemaDescription: string,
     _options?: LLMRequestOptions
   ): Promise<T> {
     for (const [key, response] of this.customResponses) {
       if (prompt.includes(key)) {
         return JSON.parse(response) as T;
       }
+    }
+
+    // When the schema description indicates an array is expected, return an
+    // empty array so callers using Array.isArray() guards get a valid result
+    // rather than a plain object that silently drops the enrichment.
+    if (schemaDescription.includes('[]') || schemaDescription.startsWith('string[]')) {
+      return [] as unknown as T;
     }
 
     return {
