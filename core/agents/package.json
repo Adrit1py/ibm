@@ -9,7 +9,10 @@
     "node": ">=22.6.0"
   },
   "scripts": {
-    "test": "node --test tests/*.test.ts"
+    "test": "node --test tests/*.test.ts",
+    "demo": "node src/cli.ts",
+    "demo:offline": "node src/cli.ts --offline",
+    "demo:export": "node src/cli.ts --offline --export ../../sample_report.json"
   },
   "keywords": [
     "bob-simulator",
