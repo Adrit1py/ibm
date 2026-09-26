@@ -1,0 +1,21 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: payment-api
+spec:
+  selector:
+    matchLabels:
+      app: payment-api
+  template:
+    spec:
+      containers:
+        - name: payment-api
+          image: bob-simulator/payment-api:latest
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: payment-api-svc
+spec:
+  selector:
+    app: payment-api
