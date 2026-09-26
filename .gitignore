@@ -118,3 +118,5 @@ build/
 # DO NOT REMOVE ABOVE PATTERNS
 # Add project-specific patterns below
 # ============================================
+.next/
+.pytest_cache/
