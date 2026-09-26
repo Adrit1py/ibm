@@ -992,7 +992,7 @@ export class PatchGeneratorAgent {
       title: `Add High-Availability Standby Failover to ${nodeName}`,
       description:
         `Configures automated multi-host standby failover and read-replica distribution.`,
-      resilience_pattern: 'bulkhead_isolation',
+      resilience_pattern: 'graceful_degradation',
       diff,
       estimated_blast_radius_reduction_pct: 75,
     };
@@ -1026,7 +1026,7 @@ export class PatchGeneratorAgent {
       title: `Add Multi-Host Failover URI for ${nodeName}`,
       description:
         `Configures multi-host target_session_attrs=read-write with pre-ping validation.`,
-      resilience_pattern: 'bulkhead_isolation',
+      resilience_pattern: 'graceful_degradation',
       diff,
       estimated_blast_radius_reduction_pct: 75,
     };
@@ -1061,7 +1061,7 @@ export class PatchGeneratorAgent {
       title: `Add Multi-Host Failover DSN for ${nodeName}`,
       description:
         `Configures automatic multi-host failover in pgx connection DSN.`,
-      resilience_pattern: 'bulkhead_isolation',
+      resilience_pattern: 'graceful_degradation',
       diff,
       estimated_blast_radius_reduction_pct: 75,
     };
@@ -1325,7 +1325,7 @@ export class PatchGeneratorAgent {
       title: `Configure Multi-Host JDBC Failover for ${nodeName}`,
       description:
         `Adds multi-host failover with targetServerType=primary for automatic standby routing.`,
-      resilience_pattern: 'bulkhead_isolation',
+      resilience_pattern: 'graceful_degradation',
       diff,
       estimated_blast_radius_reduction_pct: 75,
     };
@@ -1575,7 +1575,7 @@ export class PatchGeneratorAgent {
       title: `Configure Multi-Host Failover for ${nodeName}`,
       description:
         `Enables automated multi-host target server failover in database connection string.`,
-      resilience_pattern: 'bulkhead_isolation',
+      resilience_pattern: 'graceful_degradation',
       diff,
       estimated_blast_radius_reduction_pct: 75,
     };
@@ -1823,7 +1823,7 @@ export class PatchGeneratorAgent {
       title: `Configure Multi-Host Failover for ${nodeName}`,
       description:
         `Adds multi-host connection string with automatic primary failover.`,
-      resilience_pattern: 'bulkhead_isolation',
+      resilience_pattern: 'graceful_degradation',
       diff,
       estimated_blast_radius_reduction_pct: 75,
     };
@@ -2017,7 +2017,7 @@ export class PatchGeneratorAgent {
       target_file: targetFile,
       title: `Configure Read/Write Multi-Host Failover for ${nodeName}`,
       description: `Splits read/write hosts with standby failover.`,
-      resilience_pattern: 'bulkhead_isolation',
+      resilience_pattern: 'graceful_degradation',
       diff,
       estimated_blast_radius_reduction_pct: 75,
     };
@@ -2207,7 +2207,7 @@ export class PatchGeneratorAgent {
       target_file: targetFile,
       title: `Configure Multi-Host Replica Failover for ${nodeName}`,
       description: `Configures primary and standby replica hosts in database.yml.`,
-      resilience_pattern: 'bulkhead_isolation',
+      resilience_pattern: 'graceful_degradation',
       diff,
       estimated_blast_radius_reduction_pct: 75,
     };
@@ -2395,7 +2395,7 @@ export class PatchGeneratorAgent {
       target_file: targetFile,
       title: `Configure Standby Host Array for ${nodeName}`,
       description: `Adds multi-host connection list with automatic secondary fallback.`,
-      resilience_pattern: 'bulkhead_isolation',
+      resilience_pattern: 'graceful_degradation',
       diff,
       estimated_blast_radius_reduction_pct: 75,
     };
@@ -2594,7 +2594,7 @@ export class PatchGeneratorAgent {
       target_file: targetFile,
       title: `Configure Multi-Node Standby Failover for ${nodeName}`,
       description: `Configures primary and standby database cluster hosts.`,
-      resilience_pattern: 'bulkhead_isolation',
+      resilience_pattern: 'graceful_degradation',
       diff,
       estimated_blast_radius_reduction_pct: 75,
     };
@@ -2790,7 +2790,7 @@ export class PatchGeneratorAgent {
       target_file: targetFile,
       title: `Configure Primary/Standby Subsets in DestinationRule for ${nodeName}`,
       description: `Enables traffic policy routing with standby failover subsets.`,
-      resilience_pattern: 'bulkhead_isolation',
+      resilience_pattern: 'graceful_degradation',
       diff,
       estimated_blast_radius_reduction_pct: 75,
     };

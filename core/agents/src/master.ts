@@ -134,7 +134,12 @@ export class MasterAgent {
     // --- 4. Dispatch Propagation + Bottleneck in parallel ---
     const [propagationRes, bottleneckRes] = await Promise.all([
       propagationSubagent.analyze(digitalTwin, seedNodeIds, attackPrompt),
-      bottleneckSubagent.analyze(digitalTwin, seedNodeIds, attackPrompt),
+      bottleneckSubagent.analyze(
+        digitalTwin,
+        seedNodeIds,
+        attackPrompt,
+        parsed.parameters.latency_multiplier,
+      ),
     ]);
 
     // --- 5. Run Recovery with propagation findings ---

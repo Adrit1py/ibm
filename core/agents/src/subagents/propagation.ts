@@ -97,6 +97,7 @@ export class PropagationSubagent {
     // Accumulation state
     const affectedMap = new Map<string, AffectedNode>();
     const failureChains: FailureChain[] = [];
+    const emittedChainIds = new Set<string>();
     let maxDepth = 0;
     let pathsCount = 0;
     const notes: string[] = [];
@@ -211,13 +212,20 @@ export class PropagationSubagent {
             });
           }
 
-          failureChains.push({
-            chain_id: `chain-${targetId}-to-${callerId}`,
-            trigger_event: scenario,
-            root_node_id: targetId,
-            steps: chainSteps,
-            cascading_blast_radius: visited.size,
-          });
+          // Emit one chain per unique (root → caller) pair with the full
+          // accumulated step path up to this point. Re-emitting on a second
+          // incoming edge would create a duplicate with incomplete steps.
+          const chainId = `chain-${targetId}-to-${callerId}`;
+          if (!emittedChainIds.has(chainId)) {
+            emittedChainIds.add(chainId);
+            failureChains.push({
+              chain_id: chainId,
+              trigger_event: scenario,
+              root_node_id: targetId,
+              steps: chainSteps,
+              cascading_blast_radius: visited.size,
+            });
+          }
         }
       }
     }
