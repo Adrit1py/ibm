@@ -21,6 +21,10 @@ export default function ScenarioConsole() {
   const currentTick = getCurrentTick();
   const logsEndRef = useRef<HTMLDivElement>(null);
 
+  // Safely bypass strict TS checks for live backend properties
+  const backendResult = result as any;
+  const scenarioText = backendResult?.scenario_prompt || result?.scenarioDescription;
+
   // Auto-scroll to the bottom whenever live logs or timeline logs update
   useEffect(() => {
     logsEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -57,9 +61,9 @@ export default function ScenarioConsole() {
           <div className="text-slate-500 italic">System initialized. Awaiting scenario...</div>
         )}
         
-        {/* Updated from result.scenarioDescription to result.scenario_prompt per digital twin schema */}
-        {!isSimulating && result?.scenario_prompt && (
-          <div className="text-emerald-400">&gt; Scenario: {result.scenario_prompt}</div>
+        {/* Safely rendering the scenario text */}
+        {!isSimulating && scenarioText && (
+          <div className="text-emerald-400">&gt; Scenario: {scenarioText}</div>
         )}
         
         {displayLogs.map((log, idx) => (
