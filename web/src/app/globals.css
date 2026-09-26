@@ -1,0 +1,12 @@
+/* /web/src/app/globals.css */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+@layer base {
+  body {
+    @apply bg-slate-950 text-slate-100 overflow-hidden;
+  }
+}
+.react-flow__panel {
+  @apply bg-slate-800/80 p-2 rounded-md;
+}
