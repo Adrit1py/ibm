@@ -29,25 +29,59 @@ const diff = generate_resilience_patch(report);
 const scenario = parseScenario('What if payment API is 10x slower for 1 minute?');
 ```
 
+## Interactive CLI Demo
+
+Run the end-to-end multi-agent resilience analyzer directly from your terminal:
+
+```bash
+# Run with default Black Friday cascade scenario (auto-fallback to IBM Cloud/Mock)
+npm run demo
+
+# Fast offline execution (<10ms)
+npm run demo:offline
+
+# Run with a custom natural-language attack scenario
+node src/cli.ts "What happens if Stripe payment gateway is 10x slower?"
+
+# Export full FailureAnalysisReport JSON for Person 3 / Person 4
+npm run demo:export
+```
+
 ## Subagents Architecture
 
-- **Propagation Subagent (`src/subagents/propagation.ts`)**: Traces reverse call graph dependency cascades, circuit breaker status, and failure mechanisms (`timeout_cascade`, `retry_storm`, `direct_dependency_loss`, `unhandled_exception`).
+- **Propagation Subagent (`src/subagents/propagation.ts`)**: Traces reverse call graph dependency cascades, multi-path severity escalation, and failure mechanisms (`timeout_cascade`, `retry_storm`, `direct_dependency_loss`, `unhandled_exception`).
 - **Latency & Bottleneck Subagent (`src/subagents/bottleneck.ts`)**: Inspects connection pools, timeout budgets, queue backlog risks, and latency multiplier amplification.
-- **Recovery & Self-Healing Subagent (`src/subagents/recovery.ts`)**: Evaluates automatic degradation, health checks, fallback strategies, and calculates recovery time bounds.
-- **Patch Generator (`src/subagents/patch_generator.ts`)**: Synthesizes production-ready resilience patterns (circuit breakers, exponential backoff with jitter, fallback cache, bulkhead isolation) into valid unified git diffs.
+- **Recovery & Self-Healing Subagent (`src/subagents/recovery.ts`)**: Evaluates self-healing readiness, health checks, fallback strategies, and calculates recovery time bounds with leaf-node discrimination.
+- **Universal Polyglot Patch Generator (`src/subagents/patch_generator.ts`)**: Synthesizes production-ready resilience patterns into syntactically valid Unified Git Diffs across **11 language ecosystems**:
+  1. **TypeScript / JavaScript**: `opossum`, `p-retry` with full jitter, `p-queue`, `express`
+  2. **Python**: `pybreaker`, `tenacity` (jitter backoff), `asyncpg`, `asyncio.Semaphore`, `FastAPI`
+  3. **Go**: `sony/gobreaker`, `math/rand`, buffered worker channels, `net/http`
+  4. **Java / Kotlin / Scala**: `io.github.resilience4j` (CB + Retry), `HikariCP`, `Spring Boot Actuator`
+  5. **C# / .NET / F#**: `Polly` (`CircuitBreakerAsync`, `WaitAndRetryAsync`), `SocketsHttpHandler`, ASP.NET Core
+  6. **Rust**: `recloser::Recloser`, `backoff::ExponentialBackoff`, `tokio::sync::Semaphore`, `r2d2`, `axum`
+  7. **PHP / Laravel**: `ackintosh/ganesha`, `PDO`, queue dispatch, `/healthz`
+  8. **Ruby / Rails**: Shopify `semian`, `retries` gem, ActiveRecord pool, Rails `/up`
+  9. **C / C++**: `libcurl`, POSIX timeouts, `std::async`, socket pools
+  10. **Elixir / Phoenix**: OTP `:fuse` circuit breaker, `:poolboy`, Plug `/healthz`
+  11. **Kubernetes & Service Mesh IaC**: `livenessProbe` / `readinessProbe`, Envoy `outlierDetection`, Istio `DestinationRule`
 - **Scenario Parser (`src/parser/scenario_parser.ts`)**: Deterministic NLP parser extracting scenario types (`complete_failure`, `latency_degradation`, `network_partition`, etc.) and quantified parameters (`latency_multiplier`, `duration_ms`, `error_rate`).
 
-## LLM Providers
+## Multi-Tier LLM Architecture
 
-- **`BobLLMProvider` (`src/llm/watsonx.ts`)**: Connects to the IBM Bob inference API (`/ml/v1/text/chat`) using `BOB_API_KEY`. Defaults to `ibm/granite-3-8b-instruct`. Automatically degrades gracefully to `MockLLMProvider` when unconfigured.
-- **`MockLLMProvider` (`src/llm/mock_provider.ts`)**: Enables 100% offline deterministic execution and lightning-fast test suite runs without external API dependencies.
+Resilience is guaranteed via an automatic 3-tier fallback chain:
+$$\text{Local Ollama (localhost:11434)} \longrightarrow \text{IBM Bob Cloud (BOB\_API\_KEY)} \longrightarrow \text{Offline Mock Heuristics}$$
+
+- **`BobLLMProvider` / `OllamaLLMProvider` (`src/llm/watsonx.ts`)**: Tries local Ollama inference first, automatically falls back to IBM Bob Cloud (`https://us-south.ml.cloud.ibm.com`) when `BOB_API_KEY` is present, and gracefully degrades to `MockLLMProvider` if offline.
+- **`BobCloudLLMProvider` (`src/llm/watsonx.ts`)**: Standalone IBM Cloud provider connecting directly to Bob inference endpoints.
+- **`MockLLMProvider` (`src/llm/mock_provider.ts`)**: Enables 100% offline deterministic execution and lightning-fast test suite runs.
 
 ## Testing & Verification
 
-Run the full test suite using Node's native test runner:
+Run the full test suite (56 tests / 12 suites / 0 failures) using Node's native test runner:
 
 ```bash
 npm test
 # or
 node --test tests/*.test.ts
 ```
+
