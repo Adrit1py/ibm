@@ -4,8 +4,11 @@ import { ShieldAlert, Activity, CheckCircle2 } from 'lucide-react';
 
 export default function ResilienceScorecard() {
   const { result } = useSimulationStore();
-  const score = result?.resilience_score;
-  const blast = result?.blast_radius;
+  
+  // Safely cast result to any to bypass strict TS checks for live backend properties
+  const backendResult = result as any;
+  const score = backendResult?.resilience_score;
+  const blast = backendResult?.blast_radius;
 
   if (!score || !blast) return null;
 
@@ -49,7 +52,7 @@ export default function ResilienceScorecard() {
       <div className="flex flex-col pl-1">
         <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Status</span>
         <span className="text-xs font-semibold text-slate-200 flex items-center mt-0.5">
-          {result?.is_patched_run ? (
+          {backendResult?.is_patched_run ? (
             <span className="text-emerald-400 flex items-center"><CheckCircle2 size={12} className="mr-1" /> Patched</span>
           ) : (
             <span className="text-rose-400 flex items-center">Unmitigated</span>
