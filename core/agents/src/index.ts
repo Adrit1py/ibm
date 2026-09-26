@@ -27,7 +27,7 @@ import { LatencyBottleneckSubagent } from './subagents/bottleneck.ts';
 import { RecoverySelfHealingSubagent } from './subagents/recovery.ts';
 import type { LLMProvider } from './llm/provider.ts';
 import { MockLLMProvider } from './llm/mock_provider.ts';
-import { BobLLMProvider, OllamaLLMProvider } from './llm/watsonx.ts';
+import { BobLLMProvider, OllamaLLMProvider, BobCloudLLMProvider } from './llm/watsonx.ts';
 
 /**
  * Main entrypoint: runs a complete failure-analysis simulation.
@@ -67,6 +67,7 @@ export {
   PatchGeneratorAgent,
   MockLLMProvider,
   BobLLMProvider,
+  BobCloudLLMProvider,
   OllamaLLMProvider,
   parseScenario,
 };

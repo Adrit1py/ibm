@@ -52,4 +52,33 @@ describe('PropagationSubagent', () => {
     assert.ok(result.diagnostics.analyzed_paths_count >= 1);
     assert.ok(result.diagnostics.depth_reached >= 1, 'At least 1 hop deep');
   });
+
+  test('Multi-path severity escalation upgrades caller to worst-case status', async () => {
+    // Multi-path graph: node-target-1 and node-target-2 both call node-caller
+    // Target 1 has async link (degraded), Target 2 has sync blocking link (failing)
+    const multiPathGraph = {
+      nodes: [
+        { id: 'caller', name: 'Caller Service', type: 'service' },
+        { id: 'dep-async', name: 'Async Dep', type: 'service' },
+        { id: 'dep-sync', name: 'Sync Dep', type: 'service' },
+      ],
+      edges: [
+        { source: 'caller', target: 'dep-async', protocol: 'http', sync: false },
+        { source: 'caller', target: 'dep-sync', protocol: 'http', sync: true },
+      ],
+    };
+
+    const result = await subagent.analyze(
+      multiPathGraph,
+      ['dep-async', 'dep-sync'],
+      'Both dependencies fail',
+    );
+
+    const callerNode = result.affected_nodes.find((n) => n.node_id === 'caller');
+    assert.ok(callerNode, 'Caller should be affected');
+    // Escalates to failing (the worse of degraded vs failing)
+    assert.equal(callerNode.status, 'failing');
+    assert.equal(callerNode.impact_level, 'critical');
+    assert.ok(callerNode.latency_impact_multiplier >= 8.0);
+  });
 });

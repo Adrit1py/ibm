@@ -65,7 +65,37 @@ export class MasterAgent {
   async runFailureAnalysis(
     digitalTwin: DigitalTwinSchema,
     attackPrompt: string,
-    _options?: AgentExecutionOptions,
+    options?: AgentExecutionOptions,
+  ): Promise<FailureAnalysisReport> {
+    // If a timeout is requested, wrap execution in a timeout race
+    if (options?.timeout_ms && options.timeout_ms > 0) {
+      const timeoutMs = options.timeout_ms;
+      return Promise.race([
+        this.executePipeline(digitalTwin, attackPrompt, options),
+        new Promise<FailureAnalysisReport>((_, reject) =>
+          setTimeout(
+            () =>
+              reject(
+                new Error(
+                  `MasterAgent: Failure analysis exceeded timeout budget of ${timeoutMs}ms`,
+                ),
+              ),
+            timeoutMs,
+          ),
+        ),
+      ]);
+    }
+
+    return this.executePipeline(digitalTwin, attackPrompt, options);
+  }
+
+  /**
+   * Internal execution pipeline for failure analysis.
+   */
+  private async executePipeline(
+    digitalTwin: DigitalTwinSchema,
+    attackPrompt: string,
+    options?: AgentExecutionOptions,
   ): Promise<FailureAnalysisReport> {
     // --- 1. Defensive input validation ---
     if (
@@ -80,6 +110,21 @@ export class MasterAgent {
       return this.emptyReport(attackPrompt);
     }
 
+    // --- Select active subagents (mock_mode forces MockLLMProvider) ---
+    const useMock = options?.mock_mode === true;
+    const propagationSubagent = useMock
+      ? new PropagationSubagent(new MockLLMProvider())
+      : this.propagationSubagent;
+    const bottleneckSubagent = useMock
+      ? new LatencyBottleneckSubagent(new MockLLMProvider())
+      : this.bottleneckSubagent;
+    const recoverySubagent = useMock
+      ? new RecoverySelfHealingSubagent(new MockLLMProvider())
+      : this.recoverySubagent;
+    const patchGenerator = useMock
+      ? new PatchGeneratorAgent(new MockLLMProvider())
+      : this.patchGenerator;
+
     // --- 2. Parse the scenario for structured parameters ---
     const parsed = parseScenario(attackPrompt);
 
@@ -88,12 +133,12 @@ export class MasterAgent {
 
     // --- 4. Dispatch Propagation + Bottleneck in parallel ---
     const [propagationRes, bottleneckRes] = await Promise.all([
-      this.propagationSubagent.analyze(digitalTwin, seedNodeIds, attackPrompt),
-      this.bottleneckSubagent.analyze(digitalTwin, seedNodeIds, attackPrompt),
+      propagationSubagent.analyze(digitalTwin, seedNodeIds, attackPrompt),
+      bottleneckSubagent.analyze(digitalTwin, seedNodeIds, attackPrompt),
     ]);
 
     // --- 5. Run Recovery with propagation findings ---
-    const recoveryRes = await this.recoverySubagent.analyze(
+    const recoveryRes = await recoverySubagent.analyze(
       digitalTwin,
       propagationRes.affected_nodes,
       attackPrompt,
@@ -110,16 +155,27 @@ export class MasterAgent {
     const allRootCauses: RootCause[] = [];
     const seenKeys = new Set<string>();
 
+    // Severity rank for confidence threshold filtering
+    const severityRank: Record<string, number> = {
+      low: 0.25,
+      medium: 0.5,
+      high: 0.75,
+      critical: 1.0,
+    };
+    const minConfidence = options?.confidence_threshold ?? 0.0;
+
     for (const rc of [...bottleneckRes.root_causes, ...recoveryRes.root_causes]) {
       const key = `${rc.node_id}:${rc.vulnerability_type}`;
-      if (!seenKeys.has(key)) {
+      const rcConfidence = severityRank[rc.severity] ?? 0.5;
+
+      if (!seenKeys.has(key) && rcConfidence >= minConfidence) {
         seenKeys.add(key);
         allRootCauses.push(rc);
       }
     }
 
     // --- 8. Generate resilience patches ---
-    const suggestedPatches = await this.patchGenerator.generatePatches(
+    const suggestedPatches = await patchGenerator.generatePatches(
       digitalTwin,
       allRootCauses,
     );

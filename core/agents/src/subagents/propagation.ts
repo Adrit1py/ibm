@@ -35,6 +35,21 @@ export interface PropagationAnalysisResult {
   };
 }
 
+/** Severity rank map for comparing cascading impact levels. */
+const STATUS_SEVERITY_RANK: Record<ComponentStatus, number> = {
+  healthy: 0,
+  degraded: 1,
+  failing: 2,
+  dead: 3,
+};
+
+const IMPACT_SEVERITY_RANK: Record<ImpactLevel, number> = {
+  low: 0,
+  medium: 1,
+  high: 2,
+  critical: 3,
+};
+
 /** Internal BFS queue item. */
 interface TraversalFrame {
   readonly nodeId: string;
@@ -143,8 +158,9 @@ export class PropagationSubagent {
 
           const chainSteps = [...current.chainSteps, step];
 
-          // Only add to affected map once (first encounter = worst path)
-          if (!affectedMap.has(callerId)) {
+          // Multi-path severity escalation: add new or escalate to worst-case severity
+          const existing = affectedMap.get(callerId);
+          if (!existing) {
             affectedMap.set(callerId, {
               node_id: callerId,
               node_name: callerName,
@@ -156,6 +172,32 @@ export class PropagationSubagent {
               latency_impact_multiplier: classification.latencyMult,
               error_rate_estimate: classification.errorRate,
               recovering: false,
+            });
+          } else {
+            // Escalate if this incoming path presents a worse failure mode
+            const higherStatus =
+              STATUS_SEVERITY_RANK[classification.status] >
+              STATUS_SEVERITY_RANK[existing.status]
+                ? classification.status
+                : existing.status;
+            const higherImpact =
+              IMPACT_SEVERITY_RANK[classification.impact] >
+              IMPACT_SEVERITY_RANK[existing.impact_level]
+                ? classification.impact
+                : existing.impact_level;
+
+            affectedMap.set(callerId, {
+              ...existing,
+              status: higherStatus,
+              impact_level: higherImpact,
+              latency_impact_multiplier: Math.max(
+                existing.latency_impact_multiplier,
+                classification.latencyMult,
+              ),
+              error_rate_estimate: Math.max(
+                existing.error_rate_estimate,
+                classification.errorRate,
+              ),
             });
           }
 
