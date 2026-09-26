@@ -86,4 +86,34 @@ describe('RecoverySelfHealingSubagent', () => {
       'Should incorporate 10s from scenario',
     );
   });
+
+  test('Leaf database node is not falsely flagged for missing client circuit breaker', async () => {
+    const affected: AffectedNode[] = [
+      {
+        node_id: 'postgres-db',
+        node_name: 'Orders PostgreSQL DB',
+        status: 'dead',
+        impact_level: 'critical',
+        failure_reason: 'Database down',
+        latency_impact_multiplier: 10.0,
+        error_rate_estimate: 1.0,
+        recovering: false,
+      },
+    ];
+
+    const result = await subagent.analyze(
+      sampleEcommerceGraph,
+      affected,
+      'Postgres crashes',
+    );
+
+    const cbVulnerabilities = result.root_causes.filter(
+      (r) => r.node_id === 'postgres-db' && r.vulnerability_type === 'missing_circuit_breaker',
+    );
+    assert.equal(
+      cbVulnerabilities.length,
+      0,
+      'Database should NOT be flagged for missing client circuit breaker when calling downstream',
+    );
+  });
 });

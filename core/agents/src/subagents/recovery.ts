@@ -70,6 +70,8 @@ export class RecoverySelfHealingSubagent {
 
     const affectedSet = new Set(affectedNodes.map((a) => a.node_id));
 
+    const outgoingSources = new Set(digitalTwin.edges.map((e) => e.source));
+
     for (const node of digitalTwin.nodes) {
       if (!affectedSet.has(node.id)) continue;
 
@@ -77,38 +79,66 @@ export class RecoverySelfHealingSubagent {
       const hasCircuitBreaker = config.circuit_breaker === true;
       const hasFallback = config.fallback_enabled === true;
 
-      // --- Missing Circuit Breaker ---
-      if (!hasCircuitBreaker) {
-        rootCauses.push({
-          id: `rc-cb-${node.id}`,
-          node_id: node.id,
-          vulnerability_type: 'missing_circuit_breaker',
-          description:
-            `Node ${node.name} does not employ a circuit breaker when ` +
-            `calling downstream dependencies, causing permanent lockup ` +
-            `during outages until manual restart.`,
-          severity: 'critical',
-          file_target: node.file_path,
-          code_reference: node.code_snippet,
-        });
-        recoveryBarriers.push(
-          `Node ${node.name} cannot fast-fail without a circuit breaker.`,
-        );
-        canSelfHeal = false;
-      }
+      // Only nodes that make outbound calls require client circuit breakers & fallbacks
+      const isCallerNode =
+        outgoingSources.has(node.id) ||
+        node.type === 'service' ||
+        node.type === 'gateway';
 
-      // --- Missing Fallback ---
-      if (!hasFallback) {
-        rootCauses.push({
-          id: `rc-fb-${node.id}`,
-          node_id: node.id,
-          vulnerability_type: 'missing_fallback',
-          description:
-            `Node ${node.name} lacks graceful fallback responses when ` +
-            `downstream dependencies are unavailable.`,
-          severity: 'high',
-          file_target: node.file_path,
-        });
+      if (isCallerNode) {
+        // --- Missing Circuit Breaker on Caller ---
+        if (!hasCircuitBreaker) {
+          rootCauses.push({
+            id: `rc-cb-${node.id}`,
+            node_id: node.id,
+            vulnerability_type: 'missing_circuit_breaker',
+            description:
+              `Node ${node.name} does not employ a circuit breaker when ` +
+              `calling downstream dependencies, causing permanent lockup ` +
+              `during outages until manual restart.`,
+            severity: 'critical',
+            file_target: node.file_path,
+            code_reference: node.code_snippet,
+          });
+          recoveryBarriers.push(
+            `Node ${node.name} cannot fast-fail without a circuit breaker.`,
+          );
+          canSelfHeal = false;
+        }
+
+        // --- Missing Fallback on Caller ---
+        if (!hasFallback) {
+          rootCauses.push({
+            id: `rc-fb-${node.id}`,
+            node_id: node.id,
+            vulnerability_type: 'missing_fallback',
+            description:
+              `Node ${node.name} lacks graceful fallback responses when ` +
+              `downstream dependencies are unavailable.`,
+            severity: 'high',
+            file_target: node.file_path,
+          });
+        }
+      } else {
+        // Terminal leaf dependency (DB, cache, queue) — check for missing health check / liveness probe
+        const hasHealthCheck =
+          config['health_check'] === true ||
+          config['health_check_endpoint'] !== undefined;
+        if (!hasHealthCheck) {
+          rootCauses.push({
+            id: `rc-hc-${node.id}`,
+            node_id: node.id,
+            vulnerability_type: 'missing_health_check',
+            description:
+              `Leaf component ${node.name} (${node.type}) lacks active health ` +
+              `monitoring / liveness probes to signal upstream callers during outages.`,
+            severity: 'medium',
+            file_target: node.file_path,
+          });
+          recoveryBarriers.push(
+            `Leaf node ${node.name} has no automated health monitoring probe.`,
+          );
+        }
       }
 
       // --- Classify recovery posture ---

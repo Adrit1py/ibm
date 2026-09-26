@@ -74,4 +74,58 @@ describe('MasterAgent Orchestration Suite', () => {
       'postgres-db should be the seed node',
     );
   });
+
+  test('AgentExecutionOptions: mock_mode forces offline execution', async () => {
+    const report = await runFailureAnalysis(
+      sampleEcommerceGraph,
+      'What if Redis crashes?',
+      { mock_mode: true },
+    );
+    assert.ok(report);
+    assert.ok(report.affected_nodes.length > 0);
+  });
+
+  test('AgentExecutionOptions: confidence_threshold filters low-severity root causes', async () => {
+    const unfiltered = await runFailureAnalysis(
+      sampleEcommerceGraph,
+      'What if Redis crashes?',
+      { confidence_threshold: 0.0 },
+    );
+
+    const filtered = await runFailureAnalysis(
+      sampleEcommerceGraph,
+      'What if Redis crashes?',
+      { confidence_threshold: 0.75 },
+    );
+
+    assert.ok(
+      filtered.root_causes.length <= unfiltered.root_causes.length,
+      'High confidence threshold should filter out lower-severity root causes',
+    );
+    for (const rc of filtered.root_causes) {
+      assert.ok(
+        rc.severity === 'high' || rc.severity === 'critical',
+        `Should only retain high or critical severity, got: ${rc.severity}`,
+      );
+    }
+  });
+
+  test('AgentExecutionOptions: timeout_ms enforces execution deadline', async () => {
+    // Inject a provider with deliberate delay to verify timeout enforcement
+    const slowProvider = new MockLLMProvider();
+    slowProvider.generateStructuredJson = () =>
+      new Promise((resolve) => setTimeout(() => resolve([] as any), 60));
+    const slowMaster = new MasterAgent(slowProvider);
+
+    await assert.rejects(
+      async () => {
+        await slowMaster.runFailureAnalysis(
+          sampleEcommerceGraph,
+          'What if Redis crashes?',
+          { timeout_ms: 10 },
+        );
+      },
+      /exceeded timeout budget/,
+    );
+  });
 });

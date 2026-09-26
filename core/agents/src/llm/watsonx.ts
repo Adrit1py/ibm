@@ -94,15 +94,17 @@ export class OllamaLLMProvider implements LLMProvider {
 
   private readonly baseUrl: string;
   private readonly configuredModel: string;
+  private readonly apiKey: string;
   private readonly fallback: MockLLMProvider;
 
   /** Cached result of model auto-detection (null = not yet resolved). */
   private resolvedModel: string | null = null;
 
-  constructor(opts?: { baseUrl?: string; model?: string }) {
+  constructor(opts?: { baseUrl?: string; model?: string; apiKey?: string }) {
     this.baseUrl =
       (opts?.baseUrl ?? process.env['OLLAMA_BASE_URL'] ?? DEFAULT_BASE_URL).replace(/\/$/, '');
     this.configuredModel = opts?.model ?? process.env['OLLAMA_MODEL'] ?? DEFAULT_MODEL;
+    this.apiKey = opts?.apiKey ?? process.env['BOB_API_KEY'] ?? '';
     this.fallback = new MockLLMProvider();
   }
 
@@ -142,8 +144,61 @@ export class OllamaLLMProvider implements LLMProvider {
       );
       return data.choices?.[0]?.message?.content ?? '';
     } catch {
+      // If local Ollama is offline and an IBM Bob API key is present, route to IBM Cloud
+      if (this.apiKey) {
+        try {
+          return await this.callBobCloud(prompt, options);
+        } catch {
+          // Cloud also failed — degrade to deterministic mock
+        }
+      }
       return this.fallback.generateCompletion(prompt, options);
     }
+  }
+
+  /** Calls the IBM Bob Cloud endpoint when local Ollama is unavailable. */
+  private async callBobCloud(
+    prompt: string,
+    options?: LLMRequestOptions,
+  ): Promise<string> {
+    const cloudUrl =
+      (process.env['BOB_API_BASE_URL'] ?? 'https://us-south.ml.cloud.ibm.com').replace(/\/$/, '') +
+      '/ml/v1/text/chat?version=2024-05-01';
+
+    const messages: ChatMessage[] = [
+      {
+        role: 'system',
+        content:
+          options?.systemPrompt ??
+          'You are an expert in distributed systems resilience engineering and chaos analysis.',
+      },
+      { role: 'user', content: prompt },
+    ];
+
+    const body = {
+      model: options?.model ?? process.env['BOB_MODEL'] ?? 'ibm/granite-3-8b-instruct',
+      messages,
+      max_tokens: options?.maxTokens ?? 1024,
+      temperature: options?.temperature ?? 0.2,
+    };
+
+    const res = await fetch(cloudUrl, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${this.apiKey}`,
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify(body),
+      signal: AbortSignal.timeout(10_000),
+    });
+
+    if (!res.ok) {
+      throw new Error(`IBM Cloud Bob inference failed: HTTP ${res.status}`);
+    }
+
+    const data = (await res.json()) as ChatCompletionResponse;
+    return data.choices?.[0]?.message?.content ?? '';
   }
 
   async generateStructuredJson<T>(
@@ -257,3 +312,116 @@ export type BobLLMProvider = OllamaLLMProvider;
  */
 export const WatsonxLLMProvider = OllamaLLMProvider;
 export type WatsonxLLMProvider = OllamaLLMProvider;
+
+// ---------------------------------------------------------------------------
+// Dedicated IBM Cloud Provider
+// ---------------------------------------------------------------------------
+
+/**
+ * Dedicated LLM provider for the IBM Bob Cloud inference API.
+ *
+ * Calls `/ml/v1/text/chat?version=2024-05-01` on the IBM Cloud Watsonx endpoint
+ * using the provided `BOB_API_KEY`.
+ */
+export class BobCloudLLMProvider implements LLMProvider {
+  readonly name = 'bob-cloud-inference';
+
+  private readonly apiKey: string;
+  private readonly baseUrl: string;
+  private readonly defaultModel: string;
+  private readonly fallback: MockLLMProvider;
+
+  constructor(opts?: { apiKey?: string; baseUrl?: string; model?: string }) {
+    this.apiKey = opts?.apiKey ?? process.env['BOB_API_KEY'] ?? '';
+    this.baseUrl =
+      (opts?.baseUrl ?? process.env['BOB_API_BASE_URL'] ?? 'https://us-south.ml.cloud.ibm.com').replace(/\/$/, '');
+    this.defaultModel = opts?.model ?? process.env['BOB_MODEL'] ?? 'ibm/granite-3-8b-instruct';
+    this.fallback = new MockLLMProvider();
+  }
+
+  get isConfigured(): boolean {
+    return this.apiKey.length > 0;
+  }
+
+  async generateCompletion(
+    prompt: string,
+    options?: LLMRequestOptions,
+  ): Promise<string> {
+    if (!this.isConfigured) {
+      return this.fallback.generateCompletion(prompt, options);
+    }
+
+    const messages = [
+      {
+        role: 'system',
+        content:
+          options?.systemPrompt ??
+          'You are an expert in distributed systems resilience engineering. Be concise and technical.',
+      },
+      { role: 'user', content: prompt },
+    ];
+
+    const body = {
+      model: options?.model ?? this.defaultModel,
+      messages,
+      max_tokens: options?.maxTokens ?? 1024,
+      temperature: options?.temperature ?? 0.2,
+    };
+
+    try {
+      const res = await fetch(`${this.baseUrl}/ml/v1/text/chat?version=2024-05-01`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${this.apiKey}`,
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+        },
+        body: JSON.stringify(body),
+        signal: AbortSignal.timeout(15_000),
+      });
+
+      if (!res.ok) {
+        throw new Error(`BobCloudLLMProvider: HTTP ${res.status}`);
+      }
+
+      const data = (await res.json()) as {
+        choices?: Array<{ message?: { content?: string } }>;
+      };
+      return data.choices?.[0]?.message?.content ?? '';
+    } catch {
+      return this.fallback.generateCompletion(prompt, options);
+    }
+  }
+
+  async generateStructuredJson<T>(
+    prompt: string,
+    schemaDescription: string,
+    options?: LLMRequestOptions,
+  ): Promise<T> {
+    if (!this.isConfigured) {
+      return this.fallback.generateStructuredJson<T>(prompt, schemaDescription, options);
+    }
+
+    const jsonPrompt =
+      `${prompt}\n\n` +
+      `Respond with ONLY valid JSON matching this schema:\n${schemaDescription}\n` +
+      `No prose, no markdown fences.`;
+
+    const raw = await this.generateCompletion(jsonPrompt, {
+      ...options,
+      temperature: 0.0,
+    });
+
+    const cleaned = raw
+      .trim()
+      .replace(/^```(?:json)?\s*/i, '')
+      .replace(/```\s*$/, '')
+      .trim();
+
+    try {
+      return JSON.parse(cleaned) as T;
+    } catch {
+      return this.fallback.generateStructuredJson<T>(prompt, schemaDescription, options);
+    }
+  }
+}
