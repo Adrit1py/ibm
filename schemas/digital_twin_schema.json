@@ -1,0 +1,95 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://bob-simulator/schemas/digital_twin_schema.json",
+  "title": "DigitalTwinSchema",
+  "description": "PROPOSED v0.1.0 — drafted by Person 1 (parser) as the initial producer contract. Per project rules this must go through a separate PR tagged to all 4 owners before being treated as final/read-only. Consumed by core/agents (Person 2), core/engine (Person 3), and web/ (Person 4) via shared/types only.",
+  "type": "object",
+  "required": ["schema_version", "generated_at", "repo_path", "nodes", "edges"],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "description": "Semver of this schema shape, e.g. 0.1.0. Consumers should check this before parsing."
+    },
+    "generated_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO-8601 UTC timestamp of when the graph was generated."
+    },
+    "repo_path": {
+      "type": "string",
+      "description": "Absolute or repo-relative path that was parsed."
+    },
+    "warnings": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Non-fatal issues encountered during parsing (missing files skipped, unparseable config, ambiguous edges, etc). Always present so downstream consumers can surface data-quality caveats instead of silently trusting an incomplete graph."
+    },
+    "nodes": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/GraphNode" }
+    },
+    "edges": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/GraphEdge" }
+    }
+  },
+  "definitions": {
+    "NodeType": {
+      "type": "string",
+      "enum": ["service", "database", "cache", "queue", "external_api", "gateway", "unknown"]
+    },
+    "EdgeType": {
+      "type": "string",
+      "enum": ["sync_call", "async_call", "timeout", "retry", "circuit_breaker", "fallback", "depends_on"]
+    },
+    "GraphNode": {
+      "type": "object",
+      "required": ["id", "type", "name"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "type": "string", "description": "Stable unique node id, e.g. 'service:payment-api'." },
+        "type": { "$ref": "#/definitions/NodeType" },
+        "name": { "type": "string" },
+        "language": { "type": ["string", "null"], "description": "e.g. python, node, go, java. Null if not code-backed (e.g. a managed DB)." },
+        "source_files": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Repo-relative paths that contributed to detecting this node."
+        },
+        "metadata": {
+          "type": "object",
+          "additionalProperties": true,
+          "description": "Free-form extras: image name, port, env vars relevant to resilience (timeouts, pool size), etc. Intentionally open so we don't need a schema PR for every new metadata key — but structural fields above are fixed."
+        }
+      }
+    },
+    "GraphEdge": {
+      "type": "object",
+      "required": ["source", "target", "type"],
+      "additionalProperties": false,
+      "properties": {
+        "source": { "type": "string", "description": "GraphNode id." },
+        "target": { "type": "string", "description": "GraphNode id." },
+        "type": { "$ref": "#/definitions/EdgeType" },
+        "timeout_ms": { "type": ["integer", "null"] },
+        "retry_policy": {
+          "type": ["object", "null"],
+          "additionalProperties": true,
+          "properties": {
+            "max_attempts": { "type": ["integer", "null"] },
+            "backoff": { "type": ["string", "null"] }
+          }
+        },
+        "source_files": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "metadata": {
+          "type": "object",
+          "additionalProperties": true
+        }
+      }
+    }
+  }
+}
