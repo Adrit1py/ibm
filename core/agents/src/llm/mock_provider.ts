@@ -52,7 +52,11 @@ export class MockLLMProvider implements LLMProvider {
   ): Promise<T> {
     for (const [key, response] of this.customResponses) {
       if (prompt.includes(key)) {
-        return JSON.parse(response) as T;
+        try {
+          return JSON.parse(response) as T;
+        } catch {
+          // Malformed custom mock response — fall through to default
+        }
       }
     }
 

@@ -313,5 +313,60 @@ describe('Patch Generator Test Suite', () => {
     assert.ok(yamlPatches[0].diff.includes('outlierDetection') || yamlPatches[0].diff.includes('consecutive5xxErrors'));
     assert.ok(yamlPatches[1].diff.includes('livenessProbe') || yamlPatches[1].diff.includes('readinessProbe'));
   });
+
+  test('tight_timeout vulnerability generates bulkhead isolation patch', async () => {
+    const rootCauses: RootCause[] = [
+      {
+        id: 'rc-timeout-fast-service',
+        node_id: 'order-service',
+        vulnerability_type: 'tight_timeout',
+        description: 'Tight timeout on service',
+        severity: 'medium',
+        file_target: 'src/services/order.ts',
+      },
+    ];
+
+    const patches = await generator.generatePatches(sampleEcommerceGraph, rootCauses);
+    assert.equal(patches.length, 1, 'tight_timeout should generate a patch');
+    assert.equal(patches[0].resilience_pattern, 'bulkhead_isolation');
+    assert.ok(patches[0].diff.includes('diff --git'), 'Valid diff header');
+    assert.ok(patches[0].diff.includes('@@'), 'Valid hunk header');
+  });
+
+  test('Polyglot patch synthesis: Python .py files produce idiomatic diffs', async () => {
+    const rootCauses: RootCause[] = [
+      {
+        id: 'rc-py-cb',
+        node_id: 'order-service',
+        vulnerability_type: 'missing_circuit_breaker',
+        description: 'Missing circuit breaker on Python service',
+        severity: 'critical',
+        file_target: 'src/services/order_service.py',
+      },
+    ];
+
+    const patches = await generator.generatePatches(sampleEcommerceGraph, rootCauses);
+    assert.equal(patches.length, 1);
+    assert.ok(patches[0].diff.includes('pybreaker') || patches[0].diff.includes('CircuitBreaker'));
+    assert.ok(patches[0].target_file.endsWith('.py'));
+  });
+
+  test('Polyglot patch synthesis: Go .go files produce idiomatic diffs', async () => {
+    const rootCauses: RootCause[] = [
+      {
+        id: 'rc-go-cb',
+        node_id: 'order-service',
+        vulnerability_type: 'missing_circuit_breaker',
+        description: 'Missing circuit breaker on Go service',
+        severity: 'critical',
+        file_target: 'cmd/order/main.go',
+      },
+    ];
+
+    const patches = await generator.generatePatches(sampleEcommerceGraph, rootCauses);
+    assert.equal(patches.length, 1);
+    assert.ok(patches[0].diff.includes('gobreaker') || patches[0].diff.includes('circuitbreaker'));
+    assert.ok(patches[0].target_file.endsWith('.go'));
+  });
 });
 

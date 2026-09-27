@@ -128,4 +128,28 @@ describe('MasterAgent Orchestration Suite', () => {
       /exceeded timeout budget/,
     );
   });
+
+  test('AgentExecutionOptions: timeout_ms = 0 does not enforce a deadline', async () => {
+    // timeout_ms = 0 should be treated as "no timeout" (guard: options.timeout_ms > 0)
+    const report = await runFailureAnalysis(
+      sampleEcommerceGraph,
+      'What if Redis crashes?',
+      { timeout_ms: 0 },
+    );
+    assert.ok(report, 'Should succeed with timeout_ms = 0');
+    assert.ok(report.affected_nodes.length > 0);
+  });
+
+  test('AgentExecutionOptions: confidence_threshold = 1.0 filters everything below critical', async () => {
+    const report = await runFailureAnalysis(
+      sampleEcommerceGraph,
+      'What if Redis crashes?',
+      { confidence_threshold: 1.0 },
+    );
+
+    // Only critical severity (rank = 1.0) should survive
+    for (const rc of report.root_causes) {
+      assert.equal(rc.severity, 'critical', `Expected only critical, got: ${rc.severity}`);
+    }
+  });
 });

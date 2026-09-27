@@ -19,17 +19,18 @@ import type {
   PatchEntry,
   VulnerabilityType,
 } from '../../../../shared/types/agent.ts';
-import type { LLMProvider } from '../llm/provider.ts';
 
 /**
  * Generates actionable code patches implementing resilience patterns
  * for each identified root-cause vulnerability.
  */
 export class PatchGeneratorAgent {
-  private readonly llm: LLMProvider;
-
-  constructor(llm: LLMProvider) {
-    this.llm = llm;
+  /**
+   * @param _llm - LLM provider (accepted for interface uniformity with other
+   *               subagents but not used — patch generation is fully deterministic).
+   */
+  constructor(_llm?: unknown) {
+    // Intentionally unused — patches are template-based, not LLM-generated.
   }
 
   /**
@@ -51,8 +52,9 @@ export class PatchGeneratorAgent {
 
     for (const rc of rootCauses) {
       const node = nodeMap.get(rc.node_id);
-      const rawSource = (node as any)?.source_files?.[0];
-      const langHint = (node as any)?.language;
+      const parserExt = node as (DigitalTwinNode & { source_files?: readonly string[]; language?: string }) | undefined;
+      const rawSource = parserExt?.source_files?.[0];
+      const langHint = parserExt?.language;
       const defaultExt = langHint === 'python' ? '.py' : langHint === 'go' ? '.go' : langHint === 'java' ? '.java' : '.ts';
       const cleanId = rc.node_id.replace(/^[a-z_]+:/i, '');
       const targetFile =

@@ -226,9 +226,11 @@ export class MasterAgent {
 
     // Priority 1: Match by node ID or node name directly in the raw prompt
     for (const node of digitalTwin.nodes) {
-      const bareId = node.id.replace(/^[a-z_]+:/i, '').toLowerCase();
-      const idMatch = promptLower.includes(node.id.toLowerCase()) || promptLower.includes(bareId);
-      const nameMatch = promptLower.includes(node.name.toLowerCase());
+      const nodeId = node.id ?? '';
+      const nodeName = node.name ?? '';
+      const bareId = nodeId.replace(/^[a-z_]+:/i, '').toLowerCase();
+      const idMatch = nodeId.length > 0 && (promptLower.includes(nodeId.toLowerCase()) || promptLower.includes(bareId));
+      const nameMatch = nodeName.length > 0 && promptLower.includes(nodeName.toLowerCase());
 
       if (idMatch || nameMatch) {
         matchedNodeIds.push(node.id);
@@ -240,11 +242,15 @@ export class MasterAgent {
     // Priority 2: Match parser-extracted target tokens against node IDs/names
     if (parserTargets.length > 0) {
       for (const node of digitalTwin.nodes) {
-        const nodeIdLower = node.id.toLowerCase();
-        const bareId = node.id.replace(/^[a-z_]+:/i, '').toLowerCase();
-        const nodeNameLower = node.name.toLowerCase();
+        const nodeIdLower = (node.id ?? '').toLowerCase();
+        const bareId = (node.id ?? '').replace(/^[a-z_]+:/i, '').toLowerCase();
+        const nodeNameLower = (node.name ?? '').toLowerCase();
         for (const target of parserTargets) {
-          if (nodeIdLower.includes(target) || bareId.includes(target) || nodeNameLower.includes(target)) {
+          if (
+            (nodeIdLower.length > 0 && nodeIdLower.includes(target)) ||
+            (bareId.length > 0 && bareId.includes(target)) ||
+            (nodeNameLower.length > 0 && nodeNameLower.includes(target))
+          ) {
             matchedNodeIds.push(node.id);
             break;
           }

@@ -79,7 +79,9 @@ export class LatencyBottleneckSubagent {
     const targetSet = new Set(targetNodeIds);
 
     for (const node of digitalTwin.nodes) {
-      const config = (node.config ?? (node.metadata?.['config'] as Record<string, unknown>) ?? {}) as NonNullable<DigitalTwinNode['config']>;
+      const metadataConfig = node.metadata?.['config'];
+      const safeMetaConfig = typeof metadataConfig === 'object' && metadataConfig !== null ? metadataConfig as Record<string, unknown> : undefined;
+      const config = (node.config ?? safeMetaConfig ?? {}) as NonNullable<DigitalTwinNode['config']>;
       const isInScope = targetSet.has(node.id) || isLatencyScenario;
 
       // --- Check unbounded connection pools ---

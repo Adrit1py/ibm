@@ -7,7 +7,7 @@
 
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
-import { OllamaLLMProvider, BobLLMProvider, WatsonxLLMProvider } from '../src/llm/watsonx.ts';
+import { OllamaLLMProvider, BobLLMProvider, WatsonxLLMProvider, BobCloudLLMProvider } from '../src/llm/watsonx.ts';
 import { MockLLMProvider } from '../src/llm/mock_provider.ts';
 
 describe('OllamaLLMProvider', () => {
@@ -54,3 +54,38 @@ describe('OllamaLLMProvider', () => {
     assert.ok(llm instanceof OllamaLLMProvider);
   });
 });
+
+describe('BobCloudLLMProvider', () => {
+  test('provider name is bob-cloud-inference', () => {
+    const cloud = new BobCloudLLMProvider();
+    assert.equal(cloud.name, 'bob-cloud-inference');
+  });
+
+  test('isConfigured is false when no API key provided', () => {
+    const cloud = new BobCloudLLMProvider({ apiKey: '' });
+    assert.equal(cloud.isConfigured, false);
+  });
+
+  test('isConfigured is true when API key provided', () => {
+    const cloud = new BobCloudLLMProvider({ apiKey: 'mock-key-123' });
+    assert.equal(cloud.isConfigured, true);
+  });
+
+  test('unconfigured instance safely delegates completions to MockLLMProvider', async () => {
+    const cloud = new BobCloudLLMProvider({ apiKey: '' });
+    const result = await cloud.generateCompletion('test query');
+    assert.ok(typeof result === 'string');
+    assert.ok(result.includes('Mock LLM'));
+  });
+
+  test('unconfigured instance safely delegates structured JSON to MockLLMProvider', async () => {
+    const cloud = new BobCloudLLMProvider({ apiKey: '' });
+    const result = await cloud.generateStructuredJson<{ status: string }>(
+      'test query',
+      '{ status: string }',
+    );
+    assert.ok(typeof result === 'object' && result !== null);
+    assert.equal((result as any).status, 'mock_processed');
+  });
+});
+

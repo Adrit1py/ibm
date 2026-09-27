@@ -64,7 +64,12 @@ async function main(): Promise<void> {
   let prompt = 'What happens if Redis drops packets and latency spikes 10x for 30 seconds?';
 
   for (let i = 0; i < args.length; i++) {
-    if (args[i] === '--export' && i + 1 < args.length) {
+    if (args[i] === '--export') {
+      if (i + 1 >= args.length || args[i + 1].startsWith('--')) {
+        console.error(`${RED}Error:${RESET} --export requires a file path argument.`);
+        printUsage();
+        process.exit(1);
+      }
       exportPath = args[++i];
     } else if (args[i] === '--offline') {
       forceOffline = true;
