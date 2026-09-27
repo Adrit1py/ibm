@@ -4,27 +4,27 @@
 
 @layer base {
   body {
-    @apply bg-ibm-gray10 text-ibm-gray100 overflow-hidden antialiased;
+    @apply bg-brand-bg text-brand-text overflow-hidden antialiased;
   }
 }
 
 /* Strict, flat React Flow Overrides */
 .react-flow__panel {
-  @apply bg-white p-2 border border-ibm-gray30 rounded-none shadow-none !important;
+  @apply bg-white p-2 border border-brand-border rounded shadow-flat !important;
 }
 
 .react-flow__controls-button {
-  @apply border-b border-ibm-gray20 hover:bg-ibm-gray10 !important;
+  @apply border-b border-brand-border hover:bg-brand-bg text-brand-navy !important;
 }
 
-/* Classic Desktop Scrollbar */
+/* Professional Desktop Scrollbar */
 ::-webkit-scrollbar {
-  width: 10px;
-  height: 10px;
+  width: 8px;
+  height: 8px;
 }
 ::-webkit-scrollbar-track {
-  @apply bg-ibm-gray10 border-l border-ibm-gray20;
+  @apply bg-transparent;
 }
 ::-webkit-scrollbar-thumb {
-  @apply bg-ibm-gray30 hover:bg-ibm-gray60 transition-none;
+  @apply bg-slate-300 rounded hover:bg-brand-amber transition-colors;
 }
