@@ -12,7 +12,7 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en" className="dark">
+    <html lang="en">
       <body className="antialiased w-full h-screen">
         {children}
       </body>

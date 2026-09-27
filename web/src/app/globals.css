@@ -1,12 +1,30 @@
-/* /web/src/app/globals.css */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
 @layer base {
   body {
-    @apply bg-slate-950 text-slate-100 overflow-hidden;
+    @apply bg-brand-bg text-brand-text overflow-hidden antialiased;
   }
 }
+
+/* Strict, flat React Flow Overrides */
 .react-flow__panel {
-  @apply bg-slate-800/80 p-2 rounded-md;
+  @apply bg-white p-2 border border-brand-border rounded shadow-flat !important;
+}
+
+.react-flow__controls-button {
+  @apply border-b border-brand-border hover:bg-brand-bg text-brand-navy !important;
+}
+
+/* Professional Desktop Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  @apply bg-transparent;
+}
+::-webkit-scrollbar-thumb {
+  @apply bg-slate-300 rounded hover:bg-brand-amber transition-colors;
 }
