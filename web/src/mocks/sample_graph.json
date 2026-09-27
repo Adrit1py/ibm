@@ -1,0 +1,114 @@
+{
+  "schema_version": "0.1.0",
+  "generated_at": "2026-01-01T00:00:00Z",
+  "repo_path": "web-demo",
+  "warnings": [],
+  "nodes": [
+    {
+      "id": "api-gateway",
+      "type": "gateway",
+      "name": "API Gateway",
+      "language": "node",
+      "source_files": ["src/gateway/server.ts"],
+      "metadata": {
+        "config": {
+          "timeout_ms": 5000,
+          "circuit_breaker": false
+        }
+      }
+    },
+    {
+      "id": "order-service",
+      "type": "service",
+      "name": "Order Service",
+      "language": "python",
+      "source_files": ["src/services/order.py"],
+      "metadata": {
+        "config": {
+          "timeout_ms": 3000,
+          "max_retries": 5,
+          "circuit_breaker": false,
+          "fallback_enabled": false
+        }
+      }
+    },
+    {
+      "id": "redis-cache",
+      "type": "cache",
+      "name": "Redis Cache",
+      "language": null,
+      "source_files": ["src/cache/redis.py"],
+      "metadata": {
+        "config": {
+          "pool_size": 200,
+          "timeout_ms": 200
+        }
+      }
+    },
+    {
+      "id": "payment-api",
+      "type": "external_api",
+      "name": "Stripe Payment API",
+      "language": null,
+      "source_files": ["src/clients/payment.py"],
+      "metadata": {
+        "config": {
+          "timeout_ms": 8000,
+          "circuit_breaker": false,
+          "fallback_enabled": false
+        }
+      }
+    },
+    {
+      "id": "postgres-db",
+      "type": "database",
+      "name": "Orders PostgreSQL DB",
+      "language": null,
+      "source_files": ["src/db/client.py"],
+      "metadata": {
+        "config": {
+          "pool_size": 150,
+          "timeout_ms": 2000
+        }
+      }
+    }
+  ],
+  "edges": [
+    {
+      "source": "api-gateway",
+      "target": "order-service",
+      "type": "sync_call",
+      "timeout_ms": 5000,
+      "retry_policy": null,
+      "source_files": [],
+      "metadata": {}
+    },
+    {
+      "source": "order-service",
+      "target": "redis-cache",
+      "type": "sync_call",
+      "timeout_ms": 200,
+      "retry_policy": null,
+      "source_files": [],
+      "metadata": {}
+    },
+    {
+      "source": "order-service",
+      "target": "payment-api",
+      "type": "sync_call",
+      "timeout_ms": 8000,
+      "retry_policy": { "max_attempts": 5, "backoff": null },
+      "source_files": [],
+      "metadata": {}
+    },
+    {
+      "source": "order-service",
+      "target": "postgres-db",
+      "type": "sync_call",
+      "timeout_ms": 2000,
+      "retry_policy": null,
+      "source_files": [],
+      "metadata": {}
+    }
+  ]
+}
