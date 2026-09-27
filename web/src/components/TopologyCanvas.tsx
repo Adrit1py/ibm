@@ -15,7 +15,7 @@ export default function TopologyCanvas({ nodes, edges }: TopologyCanvasProps) {
   if (isLayingOut) return null;
 
   return (
-    <div className="w-full h-full bg-ibm-gray10">
+    <div className="w-full h-full bg-brand-bg">
       <ReactFlow
         nodes={layoutedNodes}
         edges={layoutedEdges}
@@ -23,12 +23,12 @@ export default function TopologyCanvas({ nodes, edges }: TopologyCanvasProps) {
         fitViewOptions={{ padding: 0.2 }}
         proOptions={{ hideAttribution: true }}
       >
-        <Background color="#e0e0e0" gap={24} size={2} />
-        <Controls className="bg-white border border-ibm-gray30 fill-ibm-gray100" />
+        <Background color="#cbd5e1" gap={24} size={2} />
+        <Controls className="bg-brand-surface border border-brand-border fill-brand-navy shadow-flat" />
         <MiniMap 
-          nodeColor={(n) => n.style?.borderLeft?.toString().split(' ')[2] || '#e0e0e0'}
-          maskColor="rgba(244, 244, 244, 0.7)"
-          className="bg-white border border-ibm-gray30"
+          nodeColor={(n) => n.style?.borderLeft?.toString().split(' ')[2] || '#e2e8f0'}
+          maskColor="rgba(248, 250, 252, 0.7)"
+          className="bg-brand-surface border border-brand-border rounded-md shadow-flat"
         />
       </ReactFlow>
     </div>
