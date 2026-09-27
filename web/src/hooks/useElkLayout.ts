@@ -10,9 +10,15 @@ const NODE_HEIGHT = 75;
 
 const getStatusBorder = (status: SystemNode['status']) => {
   switch (status) {
-    case 'failed': return '#dc2626'; // Red 600
-    case 'degraded': return '#f59e0b'; // Amber 500
-    case 'healthy': default: return '#059669'; // Emerald 600
+    case 'dead':
+    case 'failing':
+      return '#dc2626'; // Red 600 — hard failure
+    case 'degraded':
+    case 'recovering':
+      return '#f59e0b'; // Amber 500 — impaired but not dead
+    case 'healthy':
+    default:
+      return '#059669'; // Emerald 600
   }
 };
 
@@ -22,7 +28,12 @@ export function useElkLayout(domainNodes: SystemNode[], domainEdges: SystemEdge[
   const [isLayingOut, setIsLayingOut] = useState(true);
 
   useEffect(() => {
-    if (!domainNodes.length) return;
+    if (!domainNodes.length) {
+      setLayoutedNodes([]);
+      setLayoutedEdges([]);
+      setIsLayingOut(false);
+      return;
+    }
     setIsLayingOut(true);
 
     const graph = {
@@ -46,7 +57,7 @@ export function useElkLayout(domainNodes: SystemNode[], domainEdges: SystemEdge[
           return {
             id: node.id,
             position: { x: elkNode?.x || 0, y: elkNode?.y || 0 },
-            data: { label: `${node.label}\n[${node.type.toUpperCase()}]` },
+            data: { label: `${node.name}\n[${node.type.toUpperCase()}]` },
             style: {
               backgroundColor: '#ffffff',
               color: '#0f172a', // Navy text
@@ -59,25 +70,32 @@ export function useElkLayout(domainNodes: SystemNode[], domainEdges: SystemEdge[
               fontWeight: '700',
               textAlign: 'left',
               width: NODE_WIDTH,
-              boxShadow: node.status === 'failed' ? '0 10px 25px -5px rgba(220, 38, 38, 0.3)' : '0 1px 3px rgba(0,0,0,0.05)',
+              whiteSpace: 'pre-line',
+              boxShadow:
+                node.status === 'dead' || node.status === 'failing'
+                  ? '0 10px 25px -5px rgba(220, 38, 38, 0.3)'
+                  : '0 1px 3px rgba(0,0,0,0.05)',
             },
           };
         });
 
-        const rfEdges: RFEdge[] = domainEdges.map((edge) => ({
-          id: edge.id,
-          source: edge.source,
-          target: edge.target,
-          animated: edge.isFailing,
-          style: {
-            stroke: edge.isFailing ? '#dc2626' : '#cbd5e1', // Red or Slate-300
-            strokeWidth: edge.isFailing ? 3 : 2,
-          },
-          markerEnd: {
-            type: MarkerType.ArrowClosed,
-            color: edge.isFailing ? '#dc2626' : '#cbd5e1',
-          },
-        }));
+        const rfEdges: RFEdge[] = domainEdges.map((edge) => {
+          const isFailing = Boolean(edge.is_failing);
+          return {
+            id: edge.id,
+            source: edge.source,
+            target: edge.target,
+            animated: isFailing,
+            style: {
+              stroke: isFailing ? '#dc2626' : '#cbd5e1', // Red or Slate-300
+              strokeWidth: isFailing ? 3 : 2,
+            },
+            markerEnd: {
+              type: MarkerType.ArrowClosed,
+              color: isFailing ? '#dc2626' : '#cbd5e1',
+            },
+          };
+        });
 
         setLayoutedNodes(rfNodes);
         setLayoutedEdges(rfEdges);
