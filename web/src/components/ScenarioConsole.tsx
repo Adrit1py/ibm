@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useSimulationStore } from '../store/useSimulationStore';
+import { useRepoStore } from '../store/useRepoStore';
 import { Terminal, Loader2, Play } from 'lucide-react';
 
 const DEMO_PRESETS = [
@@ -11,6 +12,7 @@ const DEMO_PRESETS = [
 export default function ScenarioConsole() {
   const [input, setInput] = useState('');
   const { getCurrentTick, result, isSimulating, liveLogs, error, runSimulation } = useSimulationStore();
+  const repoId = useRepoStore((s) => s.repoId);
 
   const currentTick = getCurrentTick();
   const logsEndRef = useRef<HTMLDivElement>(null);
@@ -24,8 +26,8 @@ export default function ScenarioConsole() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!input.trim() || isSimulating) return;
-    runSimulation(input);
+    if (!input.trim() || isSimulating || !repoId) return;
+    runSimulation(input, repoId);
     setInput('');
   };
 
@@ -101,14 +103,14 @@ export default function ScenarioConsole() {
               type="text"
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              disabled={isSimulating}
+              disabled={isSimulating || !repoId}
               placeholder="Define a failure condition..."
               className="w-full bg-transparent px-3 py-2.5 text-sm text-brand-navy font-medium focus:outline-none disabled:opacity-50"
             />
           </div>
           <button
             type="submit"
-            disabled={isSimulating || !input.trim()}
+            disabled={isSimulating || !input.trim() || !repoId}
             className="bg-brand-navy hover:bg-brand-navyHover disabled:bg-slate-200 disabled:text-slate-500 text-white px-5 py-2.5 rounded transition-colors flex items-center shadow-md font-bold"
           >
             {isSimulating ? <Loader2 size={16} className="animate-spin" /> : <><Play size={16} className="mr-2" fill="currentColor"/> Execute</>}
