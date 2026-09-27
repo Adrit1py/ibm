@@ -1,26 +1,10 @@
-"""Repository Ingestion & AST Parsing.
-
-Scans source files across primary languages (Python, Node.js are
-implemented; Go/Java are stubbed for a future PR — see NotImplemented
-markers below, flagged rather than silently guessed at) and extracts
-service boundaries, API clients, database calls, caches, and message
-queues as GraphNode / GraphEdge candidates.
-
-Design note: full multi-language static analysis (real Go/Java AST,
-cross-file symbol resolution) is out of scope for this MVP scaffold.
-Python uses the real `ast` module. Node.js uses conservative regex
-heuristics over require()/import statements and known client method
-calls — good enough to seed the graph, not a substitute for a real JS
-parser (e.g. a future PR could swap in a tree-sitter based pass without
-changing this module's public functions).
-"""
+"""Repository Ingestion & AST Parsing."""
 
 from __future__ import annotations
 
 import ast
 import os
 import re
-from typing import Dict, List, Set, Tuple
 
 from .models import EdgeType, GraphEdge, GraphNode, NodeType
 
@@ -32,8 +16,7 @@ _IGNORED_DIRS = {
 _PY_EXT = {".py"}
 _JS_EXT = {".js", ".ts", ".jsx", ".tsx"}
 
-# module/package name -> (NodeType, canonical dependency name)
-_PY_DEPENDENCY_HINTS: Dict[str, Tuple[NodeType, str]] = {
+_PY_DEPENDENCY_HINTS: dict[str, tuple[NodeType, str]] = {
     "redis": (NodeType.CACHE, "redis"),
     "pymemcache": (NodeType.CACHE, "memcached"),
     "psycopg2": (NodeType.DATABASE, "postgres"),
@@ -51,8 +34,7 @@ _PY_DEPENDENCY_HINTS: Dict[str, Tuple[NodeType, str]] = {
     "aiohttp": (NodeType.EXTERNAL_API, "http_client"),
 }
 
-# require()/import package name -> (NodeType, canonical dependency name)
-_JS_DEPENDENCY_HINTS: Dict[str, Tuple[NodeType, str]] = {
+_JS_DEPENDENCY_HINTS: dict[str, tuple[NodeType, str]] = {
     "redis": (NodeType.CACHE, "redis"),
     "ioredis": (NodeType.CACHE, "redis"),
     "memcached": (NodeType.CACHE, "memcached"),
@@ -71,14 +53,11 @@ _JS_DEPENDENCY_HINTS: Dict[str, Tuple[NodeType, str]] = {
 
 _JS_REQUIRE_RE = re.compile(r"""require\(\s*['"]([^'"]+)['"]\s*\)""")
 _JS_IMPORT_RE = re.compile(r"""import\s+.*?from\s+['"]([^'"]+)['"]""")
-# crude "looks like an outbound HTTP call to another internal service" hint,
-# e.g. axios.get(`${PAYMENT_API_URL}/charge`) or fetch(process.env.X_URL)
 _JS_URL_ENV_RE = re.compile(r"""(?:axios(?:\.\w+)?|fetch)\(\s*[`'"]?\$?\{?\s*(?:process\.env\.)?([A-Z0-9_]*URL[A-Z0-9_]*)""")
 
 
-def walk_source_files(repo_path: str) -> List[str]:
-    """Return all source file paths under repo_path, skipping noisy dirs."""
-    results: List[str] = []
+def walk_source_files(repo_path: str) -> list[str]:
+    results: list[str] = []
     for root, dirs, files in os.walk(repo_path):
         dirs[:] = [d for d in dirs if d not in _IGNORED_DIRS and not d.startswith(".")]
         for fname in files:
@@ -89,10 +68,6 @@ def walk_source_files(repo_path: str) -> List[str]:
 
 
 def _service_node_id_for_file(repo_path: str, file_path: str) -> str:
-    """Best-effort: treat the top-level directory containing the file
-    (relative to repo root) as the service boundary. Falls back to the
-    repo root itself for flat/single-service repos.
-    """
     rel = os.path.relpath(file_path, repo_path)
     parts = rel.split(os.sep)
     if len(parts) > 1 and parts[0] not in _IGNORED_DIRS:
@@ -102,14 +77,14 @@ def _service_node_id_for_file(repo_path: str, file_path: str) -> str:
 
 class _PythonImportVisitor(ast.NodeVisitor):
     def __init__(self) -> None:
-        self.imported_modules: Set[str] = set()
+        self.imported_modules: set[str] = set()
 
-    def visit_Import(self, node: ast.Import) -> None:  # noqa: N802
+    def visit_Import(self, node: ast.Import) -> None:
         for alias in node.names:
             self.imported_modules.add(alias.name.split(".")[0])
         self.generic_visit(node)
 
-    def visit_ImportFrom(self, node: ast.ImportFrom) -> None:  # noqa: N802
+    def visit_ImportFrom(self, node: ast.ImportFrom) -> None:
         if node.module:
             self.imported_modules.add(node.module.split(".")[0])
         self.generic_visit(node)
@@ -117,8 +92,8 @@ class _PythonImportVisitor(ast.NodeVisitor):
 
 def analyze_python_file(
     repo_path: str, file_path: str
-) -> Tuple[List[GraphNode], List[GraphEdge], List[str]]:
-    warnings: List[str] = []
+) -> tuple[list[GraphNode], list[GraphEdge], list[str]]:
+    warnings: list[str] = []
     rel_path = os.path.relpath(file_path, repo_path)
 
     try:
@@ -138,7 +113,7 @@ def analyze_python_file(
     visitor.visit(tree)
 
     service_id = _service_node_id_for_file(repo_path, file_path)
-    nodes: List[GraphNode] = [
+    nodes: list[GraphNode] = [
         GraphNode(
             id=service_id,
             type=NodeType.SERVICE,
@@ -147,7 +122,7 @@ def analyze_python_file(
             source_files=[rel_path],
         )
     ]
-    edges: List[GraphEdge] = []
+    edges: list[GraphEdge] = []
 
     for module_name in visitor.imported_modules:
         hint = _PY_DEPENDENCY_HINTS.get(module_name)
@@ -180,8 +155,8 @@ def analyze_python_file(
 
 def analyze_js_file(
     repo_path: str, file_path: str
-) -> Tuple[List[GraphNode], List[GraphEdge], List[str]]:
-    warnings: List[str] = []
+) -> tuple[list[GraphNode], list[GraphEdge], list[str]]:
+    warnings: list[str] = []
     rel_path = os.path.relpath(file_path, repo_path)
 
     try:
@@ -191,11 +166,11 @@ def analyze_js_file(
         warnings.append(f"{rel_path}: could not read file, skipped ({exc})")
         return [], [], warnings
 
-    imported_modules: Set[str] = set(_JS_REQUIRE_RE.findall(source))
+    imported_modules: set[str] = set(_JS_REQUIRE_RE.findall(source))
     imported_modules |= set(_JS_IMPORT_RE.findall(source))
 
     service_id = _service_node_id_for_file(repo_path, file_path)
-    nodes: List[GraphNode] = [
+    nodes: list[GraphNode] = [
         GraphNode(
             id=service_id,
             type=NodeType.SERVICE,
@@ -204,7 +179,7 @@ def analyze_js_file(
             source_files=[rel_path],
         )
     ]
-    edges: List[GraphEdge] = []
+    edges: list[GraphEdge] = []
 
     for module_name in imported_modules:
         hint = _JS_DEPENDENCY_HINTS.get(module_name)
@@ -232,8 +207,6 @@ def analyze_js_file(
             )
         )
 
-    # Heuristic: outbound calls that reference an *_URL env var, treated as
-    # an external_api node named after the env var (e.g. PAYMENT_API_URL).
     for env_var in set(_JS_URL_ENV_RE.findall(source)):
         dep_name = env_var.lower()
         dep_id = f"external_api:{dep_name}"
@@ -262,13 +235,10 @@ def analyze_js_file(
 
 def extract_service_dependencies(
     repo_path: str,
-) -> Tuple[List[GraphNode], List[GraphEdge], List[str]]:
-    """Scan all supported source files under repo_path and return the
-    union of detected nodes/edges plus any non-fatal warnings.
-    """
-    all_nodes: List[GraphNode] = []
-    all_edges: List[GraphEdge] = []
-    all_warnings: List[str] = []
+) -> tuple[list[GraphNode], list[GraphEdge], list[str]]:
+    all_nodes: list[GraphNode] = []
+    all_edges: list[GraphEdge] = []
+    all_warnings: list[str] = []
 
     for file_path in walk_source_files(repo_path):
         ext = os.path.splitext(file_path)[1]
