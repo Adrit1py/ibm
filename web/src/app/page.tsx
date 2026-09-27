@@ -6,7 +6,7 @@ import TopologyCanvas from '../components/TopologyCanvas';
 import TimelineScrubber from '../components/TimelineScrubber';
 import ScenarioConsole from '../components/ScenarioConsole';
 import ResilienceScorecard from '../components/ResilienceScorecard';
-import { Loader2, Download, Info, X } from 'lucide-react';
+import { Loader2, Download, HelpCircle, X } from 'lucide-react';
 
 export default function BobSimulatorDashboard() {
   const [isGuideOpen, setIsGuideOpen] = useState(false);
@@ -28,22 +28,22 @@ export default function BobSimulatorDashboard() {
   };
 
   return (
-    <div className="flex flex-col h-screen w-full bg-gray-100 font-sans text-gray-900 overflow-hidden">
+    <div className="flex flex-col h-screen w-full bg-ibm-gray10 font-sans">
       
-      {/* Classic Solid Header */}
-      <header className="h-12 bg-white border-b border-gray-300 flex items-center justify-between px-4 flex-shrink-0">
+      {/* IBM Carbon Dark Header */}
+      <header className="h-12 bg-ibm-gray100 text-white flex items-center justify-between px-5 flex-shrink-0 border-b-4 border-ibm-blue">
         <div className="flex items-center space-x-3">
-          <div className="w-6 h-6 bg-blue-700 text-white flex items-center justify-center font-bold text-xs rounded-sm">B</div>
-          <h1 className="font-semibold text-sm text-gray-800 tracking-tight">Bob Simulator</h1>
+          <div className="w-5 h-5 bg-ibm-yellow text-ibm-gray100 flex items-center justify-center font-bold text-xs">B</div>
+          <h1 className="font-semibold text-sm tracking-wide">Bob Simulator <span className="text-ibm-gray60 font-normal ml-2">| Resilience Engine</span></h1>
         </div>
-        <div className="flex items-center space-x-4 text-sm">
-          <button onClick={() => setIsGuideOpen(true)} className="flex items-center text-gray-600 hover:text-blue-700 transition-none">
-            <Info size={14} className="mr-1.5" /> Guide
+        <div className="flex items-center space-x-5 text-sm">
+          <button onClick={() => setIsGuideOpen(true)} className="flex items-center text-ibm-gray30 hover:text-white transition-none">
+            <HelpCircle size={14} className="mr-1.5" /> Documentation
           </button>
           <button 
             onClick={exportReport}
             disabled={!result}
-            className="flex items-center text-gray-700 bg-gray-50 border border-gray-300 hover:bg-gray-100 disabled:bg-gray-100 disabled:text-gray-400 px-3 py-1 rounded-sm transition-none"
+            className="flex items-center text-white bg-ibm-gray80 hover:bg-ibm-gray60 disabled:bg-ibm-gray80/50 disabled:text-ibm-gray60 px-3 py-1 transition-none"
           >
             <Download size={14} className="mr-1.5" /> Export JSON
           </button>
@@ -53,32 +53,32 @@ export default function BobSimulatorDashboard() {
       {/* Main Content Split */}
       <div className="flex flex-1 overflow-hidden">
         
-        {/* Left Panel - Strict Borders, No Shadows */}
-        <aside className="w-[450px] flex flex-col bg-white border-r border-gray-300 flex-shrink-0 z-10">
+        {/* Left Panel */}
+        <aside className="w-[480px] flex flex-col bg-white border-r border-ibm-gray30 flex-shrink-0 z-10">
           <div className="flex-1 overflow-hidden">
             <ScenarioConsole />
           </div>
 
-          {/* Patch Reviewer - Classic Diff View */}
+          {/* Patch Reviewer - Flat Enterprise Diff */}
           {suggestedPatch && currentTick && currentTick.timeOffsetSec > 0 && (
-            <div className="h-[300px] border-t border-gray-300 bg-gray-50 flex flex-col">
-              <div className="bg-gray-200 border-b border-gray-300 px-3 py-2 flex items-center justify-between">
-                <span className="text-xs font-bold text-gray-700">Suggested Patch</span>
-                <span className="text-xs text-gray-600 font-mono bg-white border border-gray-300 px-1.5 py-0.5 rounded-sm">
+            <div className="h-[320px] border-t border-ibm-gray30 flex flex-col bg-white">
+              <div className="bg-ibm-gray10 border-b border-ibm-gray20 px-4 py-2 flex items-center justify-between">
+                <span className="text-xs font-semibold text-ibm-gray100">Suggested Mitigation Patch</span>
+                <span className="text-xs text-ibm-blue font-mono bg-blue-50 px-2 py-0.5 border border-blue-200">
                   {suggestedPatch.target_file || suggestedPatch.filepath || "system_config"}
                 </span>
               </div>
               
-              <div className="p-3 flex-1 flex flex-col overflow-hidden">
-                <p className="text-xs text-gray-700 mb-2 font-medium">
+              <div className="p-4 flex-1 flex flex-col overflow-hidden">
+                <p className="text-xs text-ibm-gray80 mb-3 leading-relaxed">
                   {suggestedPatch.description}
                 </p>
-                <div className="flex-1 bg-white border border-gray-300 overflow-auto p-2 mb-3 font-mono text-[11px] leading-tight">
-                  <pre className="text-gray-800 whitespace-pre-wrap">
+                <div className="flex-1 bg-ibm-gray10 border border-ibm-gray30 overflow-auto p-3 mb-4 font-mono text-[11px] leading-tight">
+                  <pre className="text-ibm-gray100 whitespace-pre-wrap">
                     {suggestedPatch.diff.split('\n').map((line: string, i: number) => (
                       <div key={i} className={
-                        line.startsWith('+') ? 'bg-green-50 text-green-800' : 
-                        line.startsWith('-') ? 'bg-red-50 text-red-800' : 'text-gray-600'
+                        line.startsWith('+') ? 'bg-[#defbe6] text-[#0e6027]' : 
+                        line.startsWith('-') ? 'bg-[#fff1f1] text-[#a2191f]' : 'text-ibm-gray80'
                       }>
                         {line}
                       </div>
@@ -88,12 +88,12 @@ export default function BobSimulatorDashboard() {
                 <button 
                   onClick={() => applyPatchAndRerun()}
                   disabled={isSimulating}
-                  className="w-full bg-blue-700 hover:bg-blue-800 disabled:bg-gray-300 disabled:text-gray-500 disabled:border-gray-300 text-white border border-blue-800 text-sm font-semibold py-1.5 rounded-sm transition-none flex items-center justify-center"
+                  className="w-full bg-ibm-blue hover:bg-ibm-blueHover disabled:bg-ibm-gray20 disabled:text-ibm-gray60 disabled:border-ibm-gray30 text-white text-sm py-3 transition-none flex items-center justify-center font-medium"
                 >
                   {isSimulating ? (
-                    <><Loader2 size={14} className="animate-spin mr-2" /> Applying...</>
+                    <><Loader2 size={16} className="animate-spin mr-2" /> Executing Patch...</>
                   ) : (
-                    "Apply Patch & Re-run"
+                    "Apply Patch & Re-run Simulation"
                   )}
                 </button>
               </div>
@@ -102,55 +102,55 @@ export default function BobSimulatorDashboard() {
         </aside>
 
         {/* Right Panel */}
-        <main className="flex-1 flex flex-col relative bg-gray-100">
+        <main className="flex-1 flex flex-col relative bg-ibm-gray10">
           <ResilienceScorecard />
 
           <div className="flex-1 relative">
             {currentTick ? (
               <TopologyCanvas nodes={currentTick.nodes} edges={currentTick.edges} />
             ) : (
-              <div className="flex flex-col items-center justify-center h-full w-full text-gray-500">
+              <div className="flex flex-col items-center justify-center h-full w-full text-ibm-gray60">
                 {isSimulating ? (
-                  <div className="flex items-center space-x-2">
-                    <Loader2 className="animate-spin text-blue-700" size={20} />
-                    <span className="font-mono text-sm">Analyzing architecture graph...</span>
+                  <div className="flex flex-col items-center space-y-4">
+                    <Loader2 className="animate-spin text-ibm-blue" size={32} />
+                    <span className="font-mono text-sm uppercase tracking-widest text-ibm-gray80">Analyzing Graph...</span>
                   </div>
                 ) : (
-                  <div className="font-mono text-sm bg-white border border-gray-300 px-4 py-2 rounded-sm text-gray-600">
-                    Awaiting scenario execution.
+                  <div className="font-mono text-sm border border-ibm-gray30 bg-white px-6 py-3 text-ibm-gray80 shadow-sm">
+                    Awaiting scenario injection.
                   </div>
                 )}
               </div>
             )}
           </div>
 
-          <div className="w-full bg-white border-t border-gray-300">
+          <div className="w-full bg-white border-t border-ibm-gray30">
             <TimelineScrubber />
           </div>
         </main>
       </div>
 
-      {/* Standard Modal */}
+      {/* Strict IBM-style Modal */}
       {isGuideOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/50">
-          <div className="bg-white border border-gray-300 shadow-lg w-[500px] flex flex-col rounded-sm">
-            <div className="flex items-center justify-between px-4 py-3 border-b border-gray-300 bg-gray-50">
-              <h2 className="font-semibold text-gray-800 text-sm">Operation Guide</h2>
-              <button onClick={() => setIsGuideOpen(false)} className="text-gray-500 hover:text-gray-800">
-                <X size={16} />
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-ibm-gray100/60">
+          <div className="bg-white border-t-4 border-ibm-blue w-[500px] flex flex-col shadow-2xl">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-ibm-gray20">
+              <h2 className="text-lg font-semibold text-ibm-gray100">Operation Guide</h2>
+              <button onClick={() => setIsGuideOpen(false)} className="text-ibm-gray60 hover:text-ibm-gray100">
+                <X size={20} />
               </button>
             </div>
-            <div className="p-5 space-y-4 text-sm text-gray-700 leading-relaxed">
-              <p>Bob Simulator is a Digital Twin resilience testing platform operating entirely locally.</p>
-              <ol className="list-decimal list-inside space-y-2 ml-1">
-                <li><strong>Trigger Scenario:</strong> Use the left console to inject a failure scenario against the loaded `digital_twin_schema.json`.</li>
-                <li><strong>Analyze Cascade:</strong> Use the bottom timeline to step through the exact failure propagation sequence.</li>
-                <li><strong>Review Metrics:</strong> Observe the quantitative blast radius and resilience score in the upper right.</li>
-                <li><strong>Apply Mitigation:</strong> Review the AST-aware code patch and apply it to simulate a remediated run.</li>
+            <div className="p-6 space-y-4 text-sm text-ibm-gray80 leading-relaxed">
+              <p>Bob Simulator evaluates distributed system resilience through deterministic fault injection.</p>
+              <ol className="list-decimal list-inside space-y-3 mt-4">
+                <li><span className="font-semibold text-ibm-gray100">Inject Fault:</span> Select a preset or type a natural language prompt in the console.</li>
+                <li><span className="font-semibold text-ibm-gray100">Trace Propagation:</span> Use the scrubber to step through the exact failure cascade.</li>
+                <li><span className="font-semibold text-ibm-gray100">Review Metrics:</span> Note the Blast Radius and Resilience Score in the upper right.</li>
+                <li><span className="font-semibold text-ibm-gray100">Apply Mitigation:</span> Review the generated AST code patch and apply it to test remediation.</li>
               </ol>
             </div>
-            <div className="px-4 py-3 border-t border-gray-200 bg-gray-50 flex justify-end">
-              <button onClick={() => setIsGuideOpen(false)} className="bg-white border border-gray-300 hover:bg-gray-100 text-gray-800 px-4 py-1.5 rounded-sm text-sm font-medium">
+            <div className="px-6 py-4 bg-ibm-gray10 border-t border-ibm-gray20 flex justify-end">
+              <button onClick={() => setIsGuideOpen(false)} className="bg-ibm-blue hover:bg-ibm-blueHover text-white px-6 py-2 text-sm font-medium">
                 Close
               </button>
             </div>
