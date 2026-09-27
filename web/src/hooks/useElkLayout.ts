@@ -1,4 +1,3 @@
-// web/src/hooks/useElkLayout.ts
 import { useState, useEffect } from 'react';
 import ELK from 'elkjs/lib/elk.bundled';
 import { Node as RFNode, Edge as RFEdge, MarkerType } from 'reactflow';
@@ -6,16 +5,14 @@ import type { SystemNode, SystemEdge } from '../../../shared/types/digital_twin'
 
 const elk = new ELK();
 
-// Node dimensions based on our Tailwind styles in TopologyCanvas
-const NODE_WIDTH = 180;
-const NODE_HEIGHT = 80;
+const NODE_WIDTH = 200;
+const NODE_HEIGHT = 70;
 
-// Updated to match the new Light Mode palette
-const getStatusColor = (status: SystemNode['status']) => {
+const getStatusBorder = (status: SystemNode['status']) => {
   switch (status) {
-    case 'failed': return '#e11d48'; // Rose-600
-    case 'degraded': return '#f59e0b'; // Amber-500
-    case 'healthy': default: return '#10b981'; // Emerald-500
+    case 'failed': return '#da1e28'; // IBM Red 60
+    case 'degraded': return '#f1c21b'; // IBM Yellow 30
+    case 'healthy': default: return '#24a148'; // IBM Green 50
   }
 };
 
@@ -26,51 +23,43 @@ export function useElkLayout(domainNodes: SystemNode[], domainEdges: SystemEdge[
 
   useEffect(() => {
     if (!domainNodes.length) return;
-
     setIsLayingOut(true);
 
     const graph = {
       id: 'root',
       layoutOptions: {
         'elk.algorithm': 'layered',
-        'elk.direction': 'DOWN', // Top-to-bottom hierarchy
+        'elk.direction': 'DOWN',
         'elk.spacing.nodeNode': '60',
-        'elk.layered.spacing.nodeNodeBetweenLayers': '100',
+        'elk.layered.spacing.nodeNodeBetweenLayers': '90',
       },
-      children: domainNodes.map((n) => ({
-        id: n.id,
-        width: NODE_WIDTH,
-        height: NODE_HEIGHT,
-      })),
-      edges: domainEdges.map((e) => ({
-        id: e.id,
-        sources: [e.source],
-        targets: [e.target],
-      })),
+      children: domainNodes.map((n) => ({ id: n.id, width: NODE_WIDTH, height: NODE_HEIGHT })),
+      edges: domainEdges.map((e) => ({ id: e.id, sources: [e.source], targets: [e.target] })),
     };
 
     elk.layout(graph)
       .then((layoutedGraph) => {
-        // Map back to React Flow format with calculated positions
         const rfNodes: RFNode[] = domainNodes.map((node) => {
           const elkNode = layoutedGraph.children?.find((c) => c.id === node.id);
-          const statusColor = getStatusColor(node.status);
+          const statusColor = getStatusBorder(node.status);
 
           return {
             id: node.id,
             position: { x: elkNode?.x || 0, y: elkNode?.y || 0 },
-            data: { label: `${node.label}\n(${node.type})` },
+            data: { label: `${node.label}\n[${node.type}]` },
             style: {
-              backgroundColor: '#ffffff', // White nodes for light theme
-              color: '#0f172a', // Slate-900 text
-              border: `2px solid ${statusColor}`,
-              borderRadius: '8px',
-              padding: '12px',
-              fontWeight: 'bold',
-              textAlign: 'center',
+              backgroundColor: '#ffffff',
+              color: '#161616', // Gray 100
+              border: `1px solid #c6c6c6`, // Gray 30
+              borderLeft: `6px solid ${statusColor}`, // Thick left status border
+              borderRadius: '0px', // Strict flat UI
+              padding: '12px 16px',
+              fontFamily: 'monospace',
+              fontSize: '12px',
+              fontWeight: '600',
+              textAlign: 'left',
               width: NODE_WIDTH,
-              // Softer shadow for healthy nodes, glowing red for failed
-              boxShadow: node.status === 'failed' ? '0 4px 15px rgba(225, 29, 72, 0.2)' : '0 1px 3px rgba(0,0,0,0.1)',
+              boxShadow: 'none',
             },
           };
         });
@@ -81,13 +70,12 @@ export function useElkLayout(domainNodes: SystemNode[], domainEdges: SystemEdge[
           target: edge.target,
           animated: edge.isFailing,
           style: {
-            // Light gray for healthy edges, red for failing
-            stroke: edge.isFailing ? '#e11d48' : '#94a3b8', 
+            stroke: edge.isFailing ? '#da1e28' : '#c6c6c6', 
             strokeWidth: edge.isFailing ? 3 : 2,
           },
           markerEnd: {
             type: MarkerType.ArrowClosed,
-            color: edge.isFailing ? '#e11d48' : '#94a3b8',
+            color: edge.isFailing ? '#da1e28' : '#c6c6c6',
           },
         }));
 
