@@ -1,14 +1,6 @@
-"""Architecture Graph Builder.
-
-Merges GraphNode/GraphEdge candidates from infra_parser and ast_parser
-into a single deduplicated, validated DigitalTwinSchema. This is the only
-place in core/parser where nodes/edges from different sources are
-combined — infra_parser and ast_parser never talk to each other directly.
-"""
+"""Architecture Graph Builder."""
 
 from __future__ import annotations
-
-from typing import Dict, List, Optional
 
 from .errors import EmptyGraphError
 from .models import DigitalTwinSchema, GraphEdge, GraphNode
@@ -17,18 +9,15 @@ from .models import DigitalTwinSchema, GraphEdge, GraphNode
 class GraphBuilder:
     def __init__(self, repo_path: str):
         self._repo_path = repo_path
-        self._nodes: Dict[str, GraphNode] = {}
-        self._edges: Dict[tuple, GraphEdge] = {}
-        self._warnings: List[str] = []
+        self._nodes: dict[str, GraphNode] = {}
+        self._edges: dict[tuple, GraphEdge] = {}
+        self._warnings: list[str] = []
 
     def add_node(self, node: GraphNode) -> None:
         existing = self._nodes.get(node.id)
         if existing is None:
             self._nodes[node.id] = node
             return
-        # Merge: same id detected from multiple sources (e.g. compose +
-        # source code both reference 'redis'). Union source_files/metadata
-        # rather than overwrite, so provenance isn't lost.
         merged_files = sorted(set(existing.source_files) | set(node.source_files))
         merged_meta = {**existing.metadata, **node.metadata}
         existing.source_files = merged_files
@@ -51,26 +40,23 @@ class GraphBuilder:
         if existing.retry_policy is None and edge.retry_policy is not None:
             existing.retry_policy = edge.retry_policy
 
-    def add_nodes(self, nodes: List[GraphNode]) -> None:
+    def add_nodes(self, nodes: list[GraphNode]) -> None:
         for n in nodes:
             self.add_node(n)
 
-    def add_edges(self, edges: List[GraphEdge]) -> None:
+    def add_edges(self, edges: list[GraphEdge]) -> None:
         for e in edges:
             self.add_edge(e)
 
     def add_warning(self, message: str) -> None:
         self._warnings.append(message)
 
-    def add_warnings(self, messages: List[str]) -> None:
+    def add_warnings(self, messages: list[str]) -> None:
         self._warnings.extend(messages)
 
     def _drop_dangling_edges(self) -> None:
-        """Edges pointing at a node id we never observed are dropped with a
-        warning rather than silently kept (defensive: malformed input,
-        typo'd depends_on, etc.)."""
         valid_ids = set(self._nodes.keys())
-        kept: Dict[tuple, GraphEdge] = {}
+        kept: dict[tuple, GraphEdge] = {}
         for key, edge in self._edges.items():
             if edge.source not in valid_ids or edge.target not in valid_ids:
                 self._warnings.append(
@@ -91,13 +77,8 @@ class GraphBuilder:
         )
 
 
-def validate_graph(schema: DigitalTwinSchema, strict: bool = False) -> List[str]:
-    """Sanity-check a built schema. Returns a list of additional warning
-    strings. If strict=True and the graph has zero nodes, raises
-    EmptyGraphError instead of just warning (callers that require a
-    non-empty result, e.g. a CI gate, should pass strict=True).
-    """
-    problems: List[str] = []
+def validate_graph(schema: DigitalTwinSchema, strict: bool = False) -> list[str]:
+    problems: list[str] = []
 
     if not schema.nodes:
         if strict:
@@ -105,7 +86,7 @@ def validate_graph(schema: DigitalTwinSchema, strict: bool = False) -> List[str]
         problems.append("graph has zero nodes")
 
     node_ids = {n.id for n in schema.nodes}
-    duplicate_check: Dict[str, int] = {}
+    duplicate_check: dict[str, int] = {}
     for n in schema.nodes:
         duplicate_check[n.id] = duplicate_check.get(n.id, 0) + 1
     for node_id, count in duplicate_check.items():
