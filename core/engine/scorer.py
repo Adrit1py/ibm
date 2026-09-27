@@ -1,17 +1,10 @@
-"""Resilience and blast-radius scoring engine for Person 3.
-
-Calculates quantitative blast-radius metrics, multi-factor architectural resilience scores,
-and structured diagnostic breakdowns.
-"""
+"""Resilience and blast-radius scoring engine for Person 3."""
 
 from __future__ import annotations
 
-from typing import Dict, List, Optional, Set
-
 from shared.types.digital_twin import DigitalTwinSchema, GraphNode
-from .graph_loader import calculate_node_centrality, find_single_points_of_failure, to_networkx
+from .graph_loader import find_single_points_of_failure, to_networkx
 from .models import (
-    AffectedNodeInput,
     BlastRadiusMetrics,
     FailureAnalysisReportInput,
     ResilienceBreakdown,
@@ -23,18 +16,8 @@ from .models import (
 def calculate_blast_radius(
     graph: DigitalTwinSchema,
     failure_report: FailureAnalysisReportInput,
-    timeline: Optional[List[SimulationTick]] = None,
+    timeline: list[SimulationTick] | None = None,
 ) -> BlastRadiusMetrics:
-    """Compute deterministic blast radius metrics for a failure scenario.
-
-    Args:
-        graph: The digital twin architecture graph.
-        failure_report: The Person 2 failure analysis report.
-        timeline: Optional generated timeline ticks.
-
-    Returns:
-        BlastRadiusMetrics containing counts, percentages, and affected component IDs.
-    """
     total_nodes = len(graph.nodes)
     if total_nodes == 0:
         return BlastRadiusMetrics(
@@ -52,10 +35,9 @@ def calculate_blast_radius(
         )
 
     all_node_ids = set(n.id for n in graph.nodes)
-    node_map: Dict[str, GraphNode] = {n.id: n for n in graph.nodes}
+    node_map: dict[str, GraphNode] = {n.id: n for n in graph.nodes}
 
-    # 1. Direct seed failure nodes
-    direct_node_ids: Set[str] = set()
+    direct_node_ids: set[str] = set()
     for chain in failure_report.failure_chains:
         if chain.root_node_id and chain.root_node_id in all_node_ids:
             direct_node_ids.add(chain.root_node_id)
@@ -69,8 +51,7 @@ def calculate_blast_radius(
         if not direct_node_ids and failure_report.affected_nodes:
             direct_node_ids.add(failure_report.affected_nodes[0].node_id)
 
-    # 2. All affected nodes
-    affected_node_ids: Set[str] = set(direct_node_ids)
+    affected_node_ids: set[str] = set(direct_node_ids)
     for aff in failure_report.affected_nodes:
         if aff.node_id in all_node_ids:
             affected_node_ids.add(aff.node_id)
@@ -83,7 +64,6 @@ def calculate_blast_radius(
     cascaded_node_ids = affected_node_ids - direct_node_ids
     unaffected_node_ids = all_node_ids - affected_node_ids
 
-    # 3. Max cascade depth
     max_depth = 0
     if failure_report.failure_chains:
         for chain in failure_report.failure_chains:
@@ -95,8 +75,7 @@ def calculate_blast_radius(
         diag_depth = failure_report.diagnostics.propagation.get("depth_reached", 0)
         max_depth = max(max_depth, diag_depth)
 
-    # 4. Critical services impacted (gateways, databases, or high centrality)
-    critical_services: List[str] = []
+    critical_services: list[str] = []
     G = to_networkx(graph)
     spofs = set(find_single_points_of_failure(G))
 
@@ -109,7 +88,6 @@ def calculate_blast_radius(
 
     blast_radius_pct = round((len(affected_node_ids) / total_nodes) * 100.0, 2)
 
-    # 5. Impact Level
     if blast_radius_pct >= 60.0 or any(node_map.get(n_id, None) and getattr(node_map[n_id], "type", "") == "gateway" for n_id in direct_node_ids):
         impact_level = "critical"
     elif blast_radius_pct >= 35.0 or len(critical_services) >= 2:
@@ -137,26 +115,15 @@ def calculate_blast_radius(
 def calculate_resilience_score(
     graph: DigitalTwinSchema,
     failure_report: FailureAnalysisReportInput,
-    blast_radius: Optional[BlastRadiusMetrics] = None,
+    blast_radius: BlastRadiusMetrics | None = None,
 ) -> ResilienceScoreReport:
-    """Calculate multi-factor resilience score and risk assessment report.
-
-    Args:
-        graph: The architecture graph.
-        failure_report: Person 2 failure analysis report.
-        blast_radius: Optional precalculated blast radius metrics.
-
-    Returns:
-        ResilienceScoreReport with overall score (0-100), breakdown, grade, and recommendations.
-    """
     if blast_radius is None:
         blast_radius = calculate_blast_radius(graph, failure_report)
 
-    risk_factors: List[str] = []
-    strengths: List[str] = []
-    recommendations: List[str] = []
+    risk_factors: list[str] = []
+    strengths: list[str] = []
+    recommendations: list[str] = []
 
-    # --- 1. Cascading Resistance Sub-score (0-100) ---
     cascading_score = 100.0
     if blast_radius.total_nodes > 0:
         cascade_ratio = blast_radius.cascaded_failure_count / blast_radius.total_nodes
@@ -170,7 +137,6 @@ def calculate_resilience_score(
 
     cascading_score = max(0.0, min(100.0, cascading_score))
 
-    # --- 2. Fault Isolation Sub-score (0-100) ---
     isolation_score = 100.0
     vulnerability_types = [rc.vulnerability_type for rc in failure_report.root_causes]
 
@@ -194,7 +160,6 @@ def calculate_resilience_score(
 
     isolation_score = max(0.0, min(100.0, isolation_score))
 
-    # --- 3. Graceful Degradation Sub-score (0-100) ---
     degradation_score = 100.0
     if "missing_fallback" in vulnerability_types:
         degradation_score -= 35.0
@@ -211,7 +176,6 @@ def calculate_resilience_score(
 
     degradation_score = max(0.0, min(100.0, degradation_score))
 
-    # --- 4. Recovery Efficiency Sub-score (0-100) ---
     recovery_score = 70.0
     recovering_count = sum(1 for a in failure_report.affected_nodes if a.recovering)
     if failure_report.affected_nodes:
@@ -231,7 +195,6 @@ def calculate_resilience_score(
 
     recovery_score = max(0.0, min(100.0, recovery_score))
 
-    # --- 5. Overall Weighted Resilience Score ---
     raw_score = (
         0.30 * cascading_score
         + 0.30 * isolation_score
@@ -239,11 +202,9 @@ def calculate_resilience_score(
         + 0.20 * recovery_score
     )
 
-    # Blast radius penalty multiplier
     blast_penalty_multiplier = max(0.2, 1.0 - (blast_radius.blast_radius_pct / 100.0) * 0.45)
     overall_score = round(max(0.0, min(100.0, raw_score * blast_penalty_multiplier)), 1)
 
-    # Letter Grade Assignment
     if overall_score >= 90.0:
         letter_grade = "A+"
     elif overall_score >= 80.0:
