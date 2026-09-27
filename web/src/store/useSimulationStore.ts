@@ -15,9 +15,9 @@ interface SimStore {
   togglePlay: () => void;
   getCurrentTick: () => SimulationTick | null;
 
-  // Real API Integration Methods
-  runSimulation: (prompt: string) => Promise<void>;
-  applyPatchAndRerun: () => Promise<void>;
+  // Real API Integration Methods — both require a repoId from useRepoStore
+  runSimulation: (prompt: string, repoId: string) => Promise<void>;
+  applyPatchAndRerun: (repoId: string) => Promise<void>;
 }
 
 export const useSimulationStore = create<SimStore>((set, get) => ({
@@ -46,19 +46,24 @@ export const useSimulationStore = create<SimStore>((set, get) => ({
     return result.timeline[currentTickIndex];
   },
 
-  runSimulation: async (prompt: string) => {
+  runSimulation: async (prompt: string, repoId: string) => {
+    if (!repoId) {
+      set({ error: 'No repository connected.' });
+      return;
+    }
+
     set({
       isSimulating: true,
       result: null,
       error: null,
-      liveLogs: [`[User] ${prompt}`, '[System] Connecting to Python Engine...'],
+      liveLogs: [`[User] ${prompt}`, '[System] Running multi-agent failure analysis...'],
     });
 
     try {
       const res = await fetch('/api/simulate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt }),
+        body: JSON.stringify({ prompt, repoId }),
       });
 
       const data = await res.json();
@@ -79,14 +84,23 @@ export const useSimulationStore = create<SimStore>((set, get) => ({
     }
   },
 
-  applyPatchAndRerun: async () => {
+  applyPatchAndRerun: async (repoId: string) => {
+    if (!repoId) {
+      set({ error: 'No repository connected.' });
+      return;
+    }
+
     set({
       isSimulating: true,
       error: null,
       liveLogs: ['[System] Applying patches and re-running simulation...'],
     });
     try {
-      const res = await fetch('/api/patch', { method: 'POST' });
+      const res = await fetch('/api/patch', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ repoId }),
+      });
       const data = await res.json();
 
       if (!res.ok) {
