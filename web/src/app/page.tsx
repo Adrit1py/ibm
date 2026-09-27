@@ -29,33 +29,13 @@ export default function BobSimulatorDashboard() {
           <ScenarioConsole />
         </div>
 
-        {/* Patch Reviewer */}
-        {suggestedPatch && currentTick && currentTick.timeOffsetSec > 0 && (
-          <div className="h-[280px] min-h-[280px] border-t border-slate-800 bg-slate-900 p-4 flex flex-col">
-            <div className="flex items-center justify-between mb-2">
-              <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Suggested Fix</h3>
-              <span className="text-[10px] text-slate-500 bg-slate-800 px-2 py-0.5 rounded truncate max-w-[200px]" title={suggestedPatch.target_file || suggestedPatch.filepath}>
-                {/* Fallback to handle both Python target_file and Mock filepath */}
-                {suggestedPatch.target_file || suggestedPatch.filepath || "system_config"}
-              </span>
-            </div>
-
-  return (
-    <div className="flex h-screen w-full bg-slate-950 overflow-hidden font-sans">
-      
-      {/* Left Panel: 400px fixed width for the Console and Patch Data */}
-      <aside className="w-[400px] flex flex-col z-10 shadow-xl shadow-black/50 border-r border-slate-800">
-        <div className="flex-1 overflow-hidden">
-          <ScenarioConsole />
-        </div>
-
         {/* Patch Reviewer (Visible only if a patch exists and we are past T+0) */}
         {suggestedPatch && currentTick && currentTick.timeOffsetSec > 0 && (
           <div className="h-[280px] min-h-[280px] border-t border-slate-800 bg-slate-900 p-4 flex flex-col">
             <div className="flex items-center justify-between mb-2">
               <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Suggested Fix</h3>
-              <span className="text-[10px] text-slate-500 bg-slate-800 px-2 py-0.5 rounded truncate max-w-[200px]" title={suggestedPatch.target_file}>
-                {suggestedPatch.target_file || "system_config"}
+              <span className="text-[10px] text-slate-500 bg-slate-800 px-2 py-0.5 rounded truncate max-w-[200px]" title={suggestedPatch.target_file || suggestedPatch.filepath}>
+                {suggestedPatch.target_file || suggestedPatch.filepath || "system_config"}
               </span>
             </div>
             
