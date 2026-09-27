@@ -28,131 +28,136 @@ export default function BobSimulatorDashboard() {
   };
 
   return (
-    <div className="flex flex-col h-screen w-full bg-[#f4f5f7] overflow-hidden font-sans text-gray-900">
+    <div className="flex flex-col h-screen w-full bg-gray-100 font-sans text-gray-900 overflow-hidden">
       
-      {/* Top Navigation Bar - Classic Flat Design */}
-      <header className="h-12 bg-white border-b border-gray-300 flex items-center justify-between px-4 shrink-0 z-20">
+      {/* Classic Solid Header */}
+      <header className="h-12 bg-white border-b border-gray-300 flex items-center justify-between px-4 flex-shrink-0">
         <div className="flex items-center space-x-3">
-          <div className="w-6 h-6 bg-blue-700 rounded-sm flex items-center justify-center text-white font-bold text-xs">B</div>
-          <h1 className="font-semibold text-sm text-gray-800 tracking-tight">Bob Simulator Workspace</h1>
+          <div className="w-6 h-6 bg-blue-700 text-white flex items-center justify-center font-bold text-xs rounded-sm">B</div>
+          <h1 className="font-semibold text-sm text-gray-800 tracking-tight">Bob Simulator</h1>
         </div>
-        <div className="flex items-center space-x-2">
-          <button onClick={() => setIsGuideOpen(true)} className="flex items-center text-xs font-medium text-gray-600 hover:text-blue-700 px-2 py-1 transition-colors">
-            <Info className="mr-1.5" size="{14}"/> Documentation
+        <div className="flex items-center space-x-4 text-sm">
+          <button onClick={() => setIsGuideOpen(true)} className="flex items-center text-gray-600 hover:text-blue-700 transition-none">
+            <Info size={14} className="mr-1.5" /> Guide
           </button>
           <button 
             onClick={exportReport}
             disabled={!result}
-            className="flex items-center text-xs font-medium bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 disabled:opacity-50 px-3 py-1.5 rounded-sm shadow-sm transition-all"
+            className="flex items-center text-gray-700 bg-gray-50 border border-gray-300 hover:bg-gray-100 disabled:bg-gray-100 disabled:text-gray-400 px-3 py-1 rounded-sm transition-none"
           >
-            <Download className="mr-1.5" size="{14}"/> Export JSON
+            <Download size={14} className="mr-1.5" /> Export JSON
           </button>
         </div>
       </header>
 
-      {/* Main Content Split - Strict Borders, No Outer Shadows */}
+      {/* Main Content Split */}
       <div className="flex flex-1 overflow-hidden">
         
-        {/* Left Panel */}
-        <aside className="w-[450px] flex flex-col bg-white border-r border-gray-300 z-10 shrink-0">
+        {/* Left Panel - Strict Borders, No Shadows */}
+        <aside className="w-[450px] flex flex-col bg-white border-r border-gray-300 flex-shrink-0 z-10">
           <div className="flex-1 overflow-hidden">
-            <ScenarioConsole/>
+            <ScenarioConsole />
           </div>
 
-          {/* Patch Reviewer - Flat IDE styling */}
+          {/* Patch Reviewer - Classic Diff View */}
           {suggestedPatch && currentTick && currentTick.timeOffsetSec > 0 && (
-            <div className="h-[300px] border-t border-gray-300 bg-[#f8f9fa] p-4 flex flex-col">
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Suggested Remediation</h3>
-                <span className="text-[11px] font-mono text-gray-700 bg-white border border-gray-300 px-2 py-0.5 rounded-sm truncate max-w-[220px]">
+            <div className="h-[300px] border-t border-gray-300 bg-gray-50 flex flex-col">
+              <div className="bg-gray-200 border-b border-gray-300 px-3 py-2 flex items-center justify-between">
+                <span className="text-xs font-bold text-gray-700">Suggested Patch</span>
+                <span className="text-xs text-gray-600 font-mono bg-white border border-gray-300 px-1.5 py-0.5 rounded-sm">
                   {suggestedPatch.target_file || suggestedPatch.filepath || "system_config"}
                 </span>
               </div>
               
-              <p className="text-xs text-gray-700 mb-3 leading-relaxed border-l-2 border-blue-500 pl-2">
-                {suggestedPatch.description}
-              </p>
-              
-              <div className="flex-1 bg-white border border-gray-300 rounded-sm p-3 overflow-auto font-mono text-[11px] mb-3">
-                <pre className="text-gray-800 whitespace-pre-wrap leading-tight">
-                  {suggestedPatch.diff}
-                </pre>
+              <div className="p-3 flex-1 flex flex-col overflow-hidden">
+                <p className="text-xs text-gray-700 mb-2 font-medium">
+                  {suggestedPatch.description}
+                </p>
+                <div className="flex-1 bg-white border border-gray-300 overflow-auto p-2 mb-3 font-mono text-[11px] leading-tight">
+                  <pre className="text-gray-800 whitespace-pre-wrap">
+                    {suggestedPatch.diff.split('\n').map((line: string, i: number) => (
+                      <div key={i} className={
+                        line.startsWith('+') ? 'bg-green-50 text-green-800' : 
+                        line.startsWith('-') ? 'bg-red-50 text-red-800' : 'text-gray-600'
+                      }>
+                        {line}
+                      </div>
+                    ))}
+                  </pre>
+                </div>
+                <button 
+                  onClick={() => applyPatchAndRerun()}
+                  disabled={isSimulating}
+                  className="w-full bg-blue-700 hover:bg-blue-800 disabled:bg-gray-300 disabled:text-gray-500 disabled:border-gray-300 text-white border border-blue-800 text-sm font-semibold py-1.5 rounded-sm transition-none flex items-center justify-center"
+                >
+                  {isSimulating ? (
+                    <><Loader2 size={14} className="animate-spin mr-2" /> Applying...</>
+                  ) : (
+                    "Apply Patch & Re-run"
+                  )}
+                </button>
               </div>
-
-              <button 
-                onClick={() => applyPatchAndRerun()}
-                disabled={isSimulating}
-                className="w-full bg-blue-700 hover:bg-blue-800 disabled:bg-gray-300 disabled:text-gray-500 text-white font-medium py-2 px-4 rounded-sm shadow-sm transition-all flex items-center justify-center space-x-2 text-sm"
-              >
-                {isSimulating ? (
-                  <>
-                    <Loader2 className="animate-spin" size="{16}"/>
-                    <span>Applying Patch...</span>
-                  </>
-                ) : (
-                  <span>Apply Patch & Re-run</span>
-                )}
-              </button>
             </div>
           )}
         </aside>
 
         {/* Right Panel */}
-        <main className="flex-1 flex flex-col relative bg-[#f4f5f7]">
-          <ResilienceScorecard/>
+        <main className="flex-1 flex flex-col relative bg-gray-100">
+          <ResilienceScorecard />
 
           <div className="flex-1 relative">
             {currentTick ? (
-              <TopologyCanvas edges="{currentTick.edges}" nodes="{currentTick.nodes}"/>
+              <TopologyCanvas nodes={currentTick.nodes} edges={currentTick.edges} />
             ) : (
-              <div className="flex flex-col items-center justify-center h-full w-full text-gray-500 space-y-3">
+              <div className="flex flex-col items-center justify-center h-full w-full text-gray-500">
                 {isSimulating ? (
-                  <>
-                    <Loader2 className="animate-spin text-blue-600" size="{28}"/>
-                    <div className="font-medium text-sm">Processing architecture topology...</div>
-                  </>
+                  <div className="flex items-center space-x-2">
+                    <Loader2 className="animate-spin text-blue-700" size={20} />
+                    <span className="font-mono text-sm">Analyzing architecture graph...</span>
+                  </div>
                 ) : (
-                  <div className="text-sm border border-gray-300 bg-white px-4 py-3 rounded-sm shadow-sm">
-                    Waiting for failure scenario input to begin simulation.
+                  <div className="font-mono text-sm bg-white border border-gray-300 px-4 py-2 rounded-sm text-gray-600">
+                    Awaiting scenario execution.
                   </div>
                 )}
               </div>
             )}
           </div>
 
-          <div className="w-full bg-white border-t border-gray-300 shadow-[0_-2px_10px_rgba(0,0,0,0.02)]">
-            <TimelineScrubber/>
+          <div className="w-full bg-white border-t border-gray-300">
+            <TimelineScrubber />
           </div>
         </main>
       </div>
 
-      {/* User Guide Modal - Sharp corners, classic enterprise dialog */}
+      {/* Standard Modal */}
       {isGuideOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/40">
-          <div className="bg-white border border-gray-300 shadow-xl w-[550px] flex flex-col rounded-sm">
-            <div className="flex items-center justify-between p-4 border-b border-gray-200 bg-[#f8f9fa]">
-              <h2 className="font-semibold text-gray-800 text-sm">Platform Documentation</h2>
-              <button onClick={() => setIsGuideOpen(false)} className="text-gray-500 hover:text-gray-800 transition-colors">
-                <X size="{18}"/>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/50">
+          <div className="bg-white border border-gray-300 shadow-lg w-[500px] flex flex-col rounded-sm">
+            <div className="flex items-center justify-between px-4 py-3 border-b border-gray-300 bg-gray-50">
+              <h2 className="font-semibold text-gray-800 text-sm">Operation Guide</h2>
+              <button onClick={() => setIsGuideOpen(false)} className="text-gray-500 hover:text-gray-800">
+                <X size={16} />
               </button>
             </div>
-            <div className="p-6 space-y-4 text-sm text-gray-700 leading-relaxed">
-              <p>The Bob Simulator relies on a locally generated `digital_twin_schema.json` file produced by the parsing engine. To test resilience:</p>
-              <ul className="list-disc list-outside space-y-2 ml-4">
-                <li><strong>Define Scenario:</strong> Use the terminal console to propose a natural-language structural failure (e.g., "Redis cache drops connections").</li>
-                <li><strong>Analyze Topology:</strong> The system will parse the JSON schema and map the cascading blast radius across your services.</li>
-                <li><strong>Scrub Timeline:</strong> Use the playback controls to step through the chronological failure propagation.</li>
-                <li><strong>Apply Remediation:</strong> Review the generated unified diff patch, apply it, and compare the delta improvement in the scorecard.</li>
-              </ul>
+            <div className="p-5 space-y-4 text-sm text-gray-700 leading-relaxed">
+              <p>Bob Simulator is a Digital Twin resilience testing platform operating entirely locally.</p>
+              <ol className="list-decimal list-inside space-y-2 ml-1">
+                <li><strong>Trigger Scenario:</strong> Use the left console to inject a failure scenario against the loaded `digital_twin_schema.json`.</li>
+                <li><strong>Analyze Cascade:</strong> Use the bottom timeline to step through the exact failure propagation sequence.</li>
+                <li><strong>Review Metrics:</strong> Observe the quantitative blast radius and resilience score in the upper right.</li>
+                <li><strong>Apply Mitigation:</strong> Review the AST-aware code patch and apply it to simulate a remediated run.</li>
+              </ol>
             </div>
-            <div className="p-4 border-t border-gray-200 bg-[#f8f9fa] flex justify-end">
-              <button onClick={() => setIsGuideOpen(false)} className="bg-white border border-gray-300 hover:bg-gray-50 text-gray-800 px-4 py-1.5 rounded-sm shadow-sm text-sm font-medium transition-colors">
+            <div className="px-4 py-3 border-t border-gray-200 bg-gray-50 flex justify-end">
+              <button onClick={() => setIsGuideOpen(false)} className="bg-white border border-gray-300 hover:bg-gray-100 text-gray-800 px-4 py-1.5 rounded-sm text-sm font-medium">
                 Close
               </button>
             </div>
           </div>
         </div>
       )}
+
     </div>
   );
 }
