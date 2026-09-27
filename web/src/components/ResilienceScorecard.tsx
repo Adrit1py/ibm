@@ -1,5 +1,6 @@
 import React from 'react';
 import { useSimulationStore } from '../store/useSimulationStore';
+import { ShieldAlert, Activity, CheckCircle } from 'lucide-react';
 
 export default function ResilienceScorecard() {
   const { result } = useSimulationStore();
@@ -10,47 +11,50 @@ export default function ResilienceScorecard() {
 
   if (!score || !blast) return null;
 
-  // Strict IBM Colors
   const gradeColors: Record<string, { bg: string, text: string, border: string }> = {
-    'A+': { bg: 'bg-[#defbe6]', text: 'text-[#0e6027]', border: 'border-[#24a148]' },
-    'A':  { bg: 'bg-[#defbe6]', text: 'text-[#0e6027]', border: 'border-[#24a148]' },
-    'B':  { bg: 'bg-[#fcf4d6]', text: 'text-[#8a6800]', border: 'border-[#f1c21b]' }, // Yellowish request!
-    'C':  { bg: 'bg-[#fcf4d6]', text: 'text-[#8a6800]', border: 'border-[#f1c21b]' },
-    'D':  { bg: 'bg-[#fff1f1]', text: 'text-[#a2191f]', border: 'border-[#da1e28]' },
-    'F':  { bg: 'bg-[#fff1f1]', text: 'text-[#a2191f]', border: 'border-[#da1e28]' },
+    'A+': { bg: 'bg-status-successBg', text: 'text-status-success', border: 'border-status-success' },
+    'A':  { bg: 'bg-status-successBg', text: 'text-status-success', border: 'border-status-success' },
+    'B':  { bg: 'bg-status-warningBg', text: 'text-status-warning', border: 'border-status-warning' }, 
+    'C':  { bg: 'bg-status-warningBg', text: 'text-status-warning', border: 'border-status-warning' },
+    'D':  { bg: 'bg-status-dangerBg', text: 'text-status-danger', border: 'border-status-danger' },
+    'F':  { bg: 'bg-status-dangerBg', text: 'text-status-danger', border: 'border-status-danger' },
   };
 
-  const theme = gradeColors[score.letter_grade] || { bg: 'bg-ibm-gray10', text: 'text-ibm-gray100', border: 'border-ibm-gray60' };
+  const theme = gradeColors[score.letter_grade] || { bg: 'bg-brand-bg', text: 'text-brand-navy', border: 'border-brand-border' };
 
   return (
-    <div className={`absolute top-5 right-5 z-20 flex bg-white border border-ibm-gray30 border-l-4 ${theme.border} shadow-md`}>
+    <div className={`absolute top-6 right-6 z-20 flex bg-brand-surface border border-brand-border border-l-4 ${theme.border} shadow-floating rounded-md overflow-hidden`}>
       
-      <div className={`flex flex-col items-center justify-center w-14 border-r border-ibm-gray20 font-mono font-bold text-xl ${theme.bg} ${theme.text}`}>
+      <div className={`flex flex-col items-center justify-center w-16 border-r border-brand-border font-mono font-extrabold text-2xl ${theme.bg} ${theme.text}`}>
         {score.letter_grade}
       </div>
 
       <div className="flex">
-        <div className="flex flex-col justify-center border-r border-ibm-gray20 px-4 py-2 min-w-[100px]">
-          <span className="text-[10px] uppercase font-semibold text-ibm-gray60 tracking-wide">Resilience</span>
-          <span className="text-lg font-bold text-ibm-gray100 font-mono">
+        <div className="flex flex-col justify-center border-r border-brand-border px-5 py-2 min-w-[110px]">
+          <span className="text-[10px] uppercase font-bold text-brand-textMuted tracking-wider flex items-center">
+            <Activity size={12} className="mr-1.5 text-brand-navy" /> Score
+          </span>
+          <span className="text-xl font-black text-brand-navy font-mono mt-0.5">
             {score.overall_resilience_score.toFixed(1)}
           </span>
         </div>
 
-        <div className="flex flex-col justify-center border-r border-ibm-gray20 px-4 py-2 min-w-[100px]">
-          <span className="text-[10px] uppercase font-semibold text-ibm-gray60 tracking-wide">Blast Radius</span>
-          <span className="text-lg font-bold text-ibm-red font-mono">
+        <div className="flex flex-col justify-center border-r border-brand-border px-5 py-2 min-w-[110px]">
+          <span className="text-[10px] uppercase font-bold text-brand-textMuted tracking-wider flex items-center">
+            <ShieldAlert size={12} className="mr-1.5 text-status-danger" /> Radius
+          </span>
+          <span className="text-xl font-black text-status-danger font-mono mt-0.5">
             {blast.blast_radius_pct.toFixed(0)}%
           </span>
         </div>
 
-        <div className="flex flex-col justify-center px-4 py-2 bg-ibm-gray10 min-w-[120px]">
-          <span className="text-[10px] uppercase font-semibold text-ibm-gray60 tracking-wide">Configuration</span>
-          <span className="text-xs font-bold mt-0.5">
+        <div className="flex flex-col justify-center px-5 py-2 bg-brand-bg min-w-[130px]">
+          <span className="text-[10px] uppercase font-bold text-brand-textMuted tracking-wider">Configuration</span>
+          <span className="text-sm font-bold mt-1">
             {backendResult?.is_patched_run ? (
-              <span className="text-ibm-green">Mitigated</span>
+              <span className="text-status-success flex items-center"><CheckCircle size={14} className="mr-1.5" /> Mitigated</span>
             ) : (
-              <span className="text-ibm-gray80">Baseline</span>
+              <span className="text-brand-textMuted">Baseline</span>
             )}
           </span>
         </div>
