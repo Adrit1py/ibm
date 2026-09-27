@@ -16,7 +16,6 @@ export default function BobSimulatorDashboard() {
   const backendResult = result as any;
   const suggestedPatch = backendResult?.suggested_patches?.[0] || backendResult?.suggestedPatch;
 
-  // Frontend-only JSON Export feature
   const exportReport = () => {
     if (!result) return;
     const blob = new Blob([JSON.stringify(result, null, 2)], { type: 'application/json' });
@@ -29,52 +28,53 @@ export default function BobSimulatorDashboard() {
   };
 
   return (
-    <div className="flex flex-col h-screen w-full bg-slate-50 overflow-hidden font-sans text-slate-900">
+    <div className="flex flex-col h-screen w-full bg-[#f4f5f7] overflow-hidden font-sans text-gray-900">
       
-      {/* Top Navigation Bar */}
-      <header className="h-14 bg-white border-b border-slate-200 flex items-center justify-between px-6 shadow-sm z-20">
-        <div className="flex items-center space-x-2">
-          <div className="w-8 h-8 bg-blue-600 rounded-md flex items-center justify-center text-white font-bold">B</div>
-          <h1 className="font-bold text-lg text-slate-800 tracking-tight">Bob Simulator</h1>
-        </div>
+      {/* Top Navigation Bar - Classic Flat Design */}
+      <header className="h-12 bg-white border-b border-gray-300 flex items-center justify-between px-4 shrink-0 z-20">
         <div className="flex items-center space-x-3">
-          <button onClick={() => setIsGuideOpen(true)} className="flex items-center text-sm font-medium text-slate-500 hover:text-blue-600 transition-colors">
-            <Info size={16} className="mr-1" /> User Guide
+          <div className="w-6 h-6 bg-blue-700 rounded-sm flex items-center justify-center text-white font-bold text-xs">B</div>
+          <h1 className="font-semibold text-sm text-gray-800 tracking-tight">Bob Simulator Workspace</h1>
+        </div>
+        <div className="flex items-center space-x-2">
+          <button onClick={() => setIsGuideOpen(true)} className="flex items-center text-xs font-medium text-gray-600 hover:text-blue-700 px-2 py-1 transition-colors">
+            <Info className="mr-1.5" size="{14}"/> Documentation
           </button>
           <button 
             onClick={exportReport}
             disabled={!result}
-            className="flex items-center text-sm font-medium bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 disabled:opacity-50 px-3 py-1.5 rounded-md shadow-sm transition-all"
+            className="flex items-center text-xs font-medium bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 disabled:opacity-50 px-3 py-1.5 rounded-sm shadow-sm transition-all"
           >
-            <Download size={16} className="mr-1" /> Export JSON
+            <Download className="mr-1.5" size="{14}"/> Export JSON
           </button>
         </div>
       </header>
 
-      {/* Main Content Split */}
+      {/* Main Content Split - Strict Borders, No Outer Shadows */}
       <div className="flex flex-1 overflow-hidden">
+        
         {/* Left Panel */}
-        <aside className="w-[400px] flex flex-col z-10 shadow-xl bg-white border-r border-slate-200">
+        <aside className="w-[450px] flex flex-col bg-white border-r border-gray-300 z-10 shrink-0">
           <div className="flex-1 overflow-hidden">
-            <ScenarioConsole />
+            <ScenarioConsole/>
           </div>
 
-          {/* Patch Reviewer */}
+          {/* Patch Reviewer - Flat IDE styling */}
           {suggestedPatch && currentTick && currentTick.timeOffsetSec > 0 && (
-            <div className="h-[280px] min-h-[280px] border-t border-slate-200 bg-slate-50 p-4 flex flex-col shadow-inner">
-              <div className="flex items-center justify-between mb-2">
-                <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider">Suggested Fix</h3>
-                <span className="text-[10px] text-slate-600 bg-white border border-slate-200 px-2 py-0.5 rounded shadow-sm truncate max-w-[200px]">
+            <div className="h-[300px] border-t border-gray-300 bg-[#f8f9fa] p-4 flex flex-col">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Suggested Remediation</h3>
+                <span className="text-[11px] font-mono text-gray-700 bg-white border border-gray-300 px-2 py-0.5 rounded-sm truncate max-w-[220px]">
                   {suggestedPatch.target_file || suggestedPatch.filepath || "system_config"}
                 </span>
               </div>
               
-              <p className="text-xs text-slate-600 mb-3 leading-relaxed line-clamp-2">
+              <p className="text-xs text-gray-700 mb-3 leading-relaxed border-l-2 border-blue-500 pl-2">
                 {suggestedPatch.description}
               </p>
               
-              <div className="flex-1 bg-white border border-slate-200 rounded p-3 overflow-x-auto overflow-y-auto font-mono text-[10px] mb-3 shadow-inner">
-                <pre className="text-slate-800 whitespace-pre-wrap leading-tight">
+              <div className="flex-1 bg-white border border-gray-300 rounded-sm p-3 overflow-auto font-mono text-[11px] mb-3">
+                <pre className="text-gray-800 whitespace-pre-wrap leading-tight">
                   {suggestedPatch.diff}
                 </pre>
               </div>
@@ -82,15 +82,15 @@ export default function BobSimulatorDashboard() {
               <button 
                 onClick={() => applyPatchAndRerun()}
                 disabled={isSimulating}
-                className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 disabled:text-slate-500 text-white font-medium py-2 px-4 rounded shadow-md transition-all flex items-center justify-center space-x-2"
+                className="w-full bg-blue-700 hover:bg-blue-800 disabled:bg-gray-300 disabled:text-gray-500 text-white font-medium py-2 px-4 rounded-sm shadow-sm transition-all flex items-center justify-center space-x-2 text-sm"
               >
                 {isSimulating ? (
                   <>
-                    <Loader2 size={16} className="animate-spin" />
-                    <span>Applying & Re-running...</span>
+                    <Loader2 className="animate-spin" size="{16}"/>
+                    <span>Applying Patch...</span>
                   </>
                 ) : (
-                  <span>Apply Patch & Re-run Simulation</span>
+                  <span>Apply Patch & Re-run</span>
                 )}
               </button>
             </div>
@@ -98,60 +98,61 @@ export default function BobSimulatorDashboard() {
         </aside>
 
         {/* Right Panel */}
-        <main className="flex-1 flex flex-col relative bg-slate-50">
-          <ResilienceScorecard />
+        <main className="flex-1 flex flex-col relative bg-[#f4f5f7]">
+          <ResilienceScorecard/>
 
           <div className="flex-1 relative">
             {currentTick ? (
-              <TopologyCanvas nodes={currentTick.nodes} edges={currentTick.edges} />
+              <TopologyCanvas edges="{currentTick.edges}" nodes="{currentTick.nodes}"/>
             ) : (
-              <div className="flex flex-col items-center justify-center h-full w-full text-slate-400 space-y-4">
+              <div className="flex flex-col items-center justify-center h-full w-full text-gray-500 space-y-3">
                 {isSimulating ? (
                   <>
-                    <Loader2 className="animate-spin text-blue-500" size={32} />
-                    <div className="font-mono text-sm tracking-wide animate-pulse">Bob is analyzing architecture...</div>
+                    <Loader2 className="animate-spin text-blue-600" size="{28}"/>
+                    <div className="font-medium text-sm">Processing architecture topology...</div>
                   </>
                 ) : (
-                  <div className="text-sm font-medium">Select a scenario to begin simulation.</div>
+                  <div className="text-sm border border-gray-300 bg-white px-4 py-3 rounded-sm shadow-sm">
+                    Waiting for failure scenario input to begin simulation.
+                  </div>
                 )}
               </div>
             )}
           </div>
 
-          <div className="w-full bg-white border-t border-slate-200 shadow-lg">
-            <TimelineScrubber />
+          <div className="w-full bg-white border-t border-gray-300 shadow-[0_-2px_10px_rgba(0,0,0,0.02)]">
+            <TimelineScrubber/>
           </div>
         </main>
       </div>
 
-      {/* User Guide Modal */}
+      {/* User Guide Modal - Sharp corners, classic enterprise dialog */}
       {isGuideOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm">
-          <div className="bg-white rounded-xl shadow-2xl w-[500px] overflow-hidden flex flex-col">
-            <div className="flex items-center justify-between p-4 border-b border-slate-100 bg-slate-50">
-              <h2 className="font-bold text-slate-800">How to use Bob Simulator</h2>
-              <button onClick={() => setIsGuideOpen(false)} className="text-slate-400 hover:text-slate-600 transition-colors">
-                <X size={20} />
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/40">
+          <div className="bg-white border border-gray-300 shadow-xl w-[550px] flex flex-col rounded-sm">
+            <div className="flex items-center justify-between p-4 border-b border-gray-200 bg-[#f8f9fa]">
+              <h2 className="font-semibold text-gray-800 text-sm">Platform Documentation</h2>
+              <button onClick={() => setIsGuideOpen(false)} className="text-gray-500 hover:text-gray-800 transition-colors">
+                <X size="{18}"/>
               </button>
             </div>
-            <div className="p-6 space-y-4 text-sm text-slate-600">
-              <p>Bob Simulator is a Digital Twin resilience testing platform. Here is how to use it:</p>
-              <ol className="list-decimal list-inside space-y-2 ml-2">
-                <li><strong>Trigger a Scenario:</strong> Use the terminal console on the left to inject a natural-language "What If?" failure.</li>
-                <li><strong>Watch the Cascade:</strong> Use the timeline scrubber at the bottom to step through time and watch failures propagate across the architecture.</li>
-                <li><strong>Analyze the Metrics:</strong> Check the Resilience Scorecard in the top right for your system's overall blast radius and grade.</li>
-                <li><strong>Apply Patches:</strong> Review the AI-generated code fixes in the bottom left, and apply them to watch the simulation rerun successfully.</li>
-              </ol>
+            <div className="p-6 space-y-4 text-sm text-gray-700 leading-relaxed">
+              <p>The Bob Simulator relies on a locally generated `digital_twin_schema.json` file produced by the parsing engine. To test resilience:</p>
+              <ul className="list-disc list-outside space-y-2 ml-4">
+                <li><strong>Define Scenario:</strong> Use the terminal console to propose a natural-language structural failure (e.g., "Redis cache drops connections").</li>
+                <li><strong>Analyze Topology:</strong> The system will parse the JSON schema and map the cascading blast radius across your services.</li>
+                <li><strong>Scrub Timeline:</strong> Use the playback controls to step through the chronological failure propagation.</li>
+                <li><strong>Apply Remediation:</strong> Review the generated unified diff patch, apply it, and compare the delta improvement in the scorecard.</li>
+              </ul>
             </div>
-            <div className="p-4 border-t border-slate-100 bg-slate-50 flex justify-end">
-              <button onClick={() => setIsGuideOpen(false)} className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md shadow-sm text-sm font-medium transition-colors">
-                Got it
+            <div className="p-4 border-t border-gray-200 bg-[#f8f9fa] flex justify-end">
+              <button onClick={() => setIsGuideOpen(false)} className="bg-white border border-gray-300 hover:bg-gray-50 text-gray-800 px-4 py-1.5 rounded-sm shadow-sm text-sm font-medium transition-colors">
+                Close
               </button>
             </div>
           </div>
         </div>
       )}
-
     </div>
   );
 }
