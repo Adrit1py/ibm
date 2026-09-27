@@ -1,8 +1,10 @@
-
 import { NextResponse } from 'next/server';
 import fs from 'fs';
 import path from 'path';
 import { mockRedisFailureSim } from '../../../mocks/simulation_fixture';
+
+// Use the deployed backend URL, falling back to localhost for local dev
+const ENGINE_URL = process.env.ENGINE_API_URL || 'http://127.0.0.1:8000';
 
 export async function POST(req: Request) {
   try {
@@ -19,9 +21,7 @@ export async function POST(req: Request) {
     }
 
     // 2. Fetch from Python FastAPI Engine (Person 3)
-    // Note: In a fully live environment, Person 2's agent would generate the 'report' here.
-    // For this integration step, we send the prompt and the mock report payload to the engine.
-    const engineRes = await fetch('http://127.0.0.1:8000/api/engine/simulate', {
+    const engineRes = await fetch(`${ENGINE_URL}/api/engine/simulate`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ 
