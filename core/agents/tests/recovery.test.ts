@@ -116,4 +116,60 @@ describe('RecoverySelfHealingSubagent', () => {
       'Database should NOT be flagged for missing client circuit breaker when calling downstream',
     );
   });
+
+  test('Partial config: node with circuit breaker but missing fallback is flagged and not recovering', async () => {
+    const partialConfigGraph = {
+      version: '1.0.0',
+      nodes: [
+        {
+          id: 'checkout-service',
+          name: 'Checkout Service',
+          type: 'service' as const,
+          file_path: 'src/services/checkout.ts',
+          config: {
+            circuit_breaker: true,
+            fallback_enabled: false,
+          },
+        },
+        {
+          id: 'payment-gateway',
+          name: 'Payment Gateway',
+          type: 'external_api' as const,
+        },
+      ],
+      edges: [
+        {
+          source: 'checkout-service',
+          target: 'payment-gateway',
+          protocol: 'http' as const,
+          sync: true,
+        },
+      ],
+    };
+
+    const affected: AffectedNode[] = [
+      {
+        node_id: 'checkout-service',
+        node_name: 'Checkout Service',
+        status: 'degraded',
+        impact_level: 'medium',
+        failure_reason: 'Downstream payment timeout',
+        latency_impact_multiplier: 1.5,
+        error_rate_estimate: 0.2,
+        recovering: false,
+      },
+    ];
+
+    const result = await subagent.analyze(
+      partialConfigGraph,
+      affected,
+      'Payment gateway slows down',
+    );
+
+    const types = result.root_causes.map((r) => r.vulnerability_type);
+    assert.ok(!types.includes('missing_circuit_breaker'), 'CB is configured so missing_circuit_breaker should not be flagged');
+    assert.ok(types.includes('missing_fallback'), 'missing_fallback must be flagged');
+    assert.ok(!result.recovering_nodes.includes('checkout-service'), 'Node without fallback cannot fully self-heal');
+  });
 });
+

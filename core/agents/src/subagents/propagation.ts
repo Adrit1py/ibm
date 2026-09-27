@@ -320,9 +320,13 @@ export class PropagationSubagent {
     errorRate: number;
     latencyMult: number;
   } {
-    const isSync = edge.sync !== false;
-    const hasCircuitBreaker = callerNode?.config?.circuit_breaker === true;
-    const hasFallback = callerNode?.config?.fallback_enabled === true;
+    const parserEdge = edge as DigitalTwinEdge & { type?: string };
+    const isSync = edge.sync !== false && parserEdge.type !== 'async_call';
+    const metadataConfig = callerNode?.metadata?.['config'];
+    const safeMetaConfig = typeof metadataConfig === 'object' && metadataConfig !== null ? metadataConfig as Record<string, unknown> : undefined;
+    const callerConfig = (callerNode?.config ?? safeMetaConfig ?? {}) as NonNullable<DigitalTwinNode['config']>;
+    const hasCircuitBreaker = callerConfig.circuit_breaker === true;
+    const hasFallback = callerConfig.fallback_enabled === true;
 
     // Circuit breaker present — node degrades gracefully
     if (hasCircuitBreaker) {

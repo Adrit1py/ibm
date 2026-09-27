@@ -319,9 +319,12 @@ export interface UnifiedGitDiff {
 
 /** Runtime configuration options for the agent orchestration loop. */
 export interface AgentExecutionOptions {
-  /** When true, use the deterministic mock LLM provider (default: true). */
+  /** When true, use the deterministic mock LLM provider (default: false). */
   readonly mock_mode?: boolean;
-  /** Maximum subagents to dispatch concurrently (default: 3). */
+  /**
+   * Maximum subagents to dispatch concurrently.
+   * @reserved Reserved for future use — not yet enforced by the orchestrator.
+   */
   readonly max_parallel_agents?: number;
   /** Minimum confidence threshold to include a root cause (0.0–1.0). */
   readonly confidence_threshold?: number;

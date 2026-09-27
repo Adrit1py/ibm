@@ -27,13 +27,14 @@ import { LatencyBottleneckSubagent } from './subagents/bottleneck.ts';
 import { RecoverySelfHealingSubagent } from './subagents/recovery.ts';
 import type { LLMProvider } from './llm/provider.ts';
 import { MockLLMProvider } from './llm/mock_provider.ts';
-import { BobLLMProvider, OllamaLLMProvider, BobCloudLLMProvider } from './llm/watsonx.ts';
+import { BobLLMProvider, OllamaLLMProvider, BobCloudLLMProvider, WatsonxLLMProvider } from './llm/watsonx.ts';
 
 /**
  * Main entrypoint: runs a complete failure-analysis simulation.
  *
- * Creates a `MasterAgent` with the default `MockLLMProvider` and delegates
- * to it. For custom LLM providers, instantiate `MasterAgent` directly.
+ * Creates a `MasterAgent` with the default `OllamaLLMProvider` (which
+ * auto-falls back to `MockLLMProvider` when Ollama is unreachable) and
+ * delegates to it. For custom LLM providers, instantiate `MasterAgent` directly.
  *
  * @param digitalTwin - Architecture graph from Person 1's parser.
  * @param attackPrompt - Natural-language "what if" scenario.
@@ -69,6 +70,7 @@ export {
   BobLLMProvider,
   BobCloudLLMProvider,
   OllamaLLMProvider,
+  WatsonxLLMProvider,
   parseScenario,
 };
 
@@ -76,3 +78,4 @@ export {
 export type * from '../../../shared/types/agent.ts';
 export type { LLMProvider } from './llm/provider.ts';
 export type { LLMRequestOptions } from './llm/provider.ts';
+export type { ParsedScenario, ScenarioType, ScenarioParameters } from './parser/scenario_parser.ts';

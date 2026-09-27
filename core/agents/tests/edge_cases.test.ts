@@ -95,4 +95,20 @@ describe('Edge Cases & Defensive Handling', () => {
     assert.equal(report.affected_nodes.length, 1, 'Falls back to first node');
     assert.equal(report.affected_nodes[0].node_id, 'srv-1');
   });
+
+  test('Handles node with missing or empty name gracefully', async () => {
+    const unnamedNodeGraph: DigitalTwinSchema = {
+      nodes: [
+        { id: 'node-without-name', name: undefined as unknown as string, type: 'service' },
+      ],
+      edges: [],
+    };
+
+    const report = await runFailureAnalysis(unnamedNodeGraph, 'node-without-name fails');
+    assert.ok(report);
+    assert.equal(report.affected_nodes.length, 1);
+    assert.equal(report.affected_nodes[0].node_id, 'node-without-name');
+    assert.ok(report.affected_nodes[0].node_name, 'Should fallback to node id when name is absent');
+  });
 });
+

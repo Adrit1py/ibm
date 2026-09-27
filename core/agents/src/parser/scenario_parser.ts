@@ -101,6 +101,9 @@ const SCENARIO_TYPE_PATTERNS: ReadonlyArray<{
       /\bslow(?:er)?\b/,
       /response\s+time\s+(?:increase|grow)/,
       /\d+\s*ms\b/,
+      /\bhangs?\b/,
+      /\bno\s+response\b/,
+      /\btime(?:d)?[\s-]?outs?\b/,
     ],
   },
   {
@@ -170,7 +173,7 @@ const TARGET_PATTERNS: ReadonlyArray<RegExp> = [
  * @returns Structured `ParsedScenario`.
  */
 export function parseScenario(prompt: string): ParsedScenario {
-  const normalized = prompt.toLowerCase().trim();
+  const normalized = (prompt ?? '').toLowerCase().trim();
 
   const scenario_type = detectType(normalized);
   const target_mentions = extractTargets(normalized);
