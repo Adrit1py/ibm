@@ -3,7 +3,6 @@ import fs from 'fs';
 import path from 'path';
 import { mockRedisFailureSim } from '../../../mocks/simulation_fixture';
 
-// Use the deployed backend URL, falling back to localhost for local dev
 const ENGINE_URL = process.env.ENGINE_API_URL || 'http://127.0.0.1:8000';
 
 export async function POST(req: Request) {
@@ -11,17 +10,13 @@ export async function POST(req: Request) {
     const schemaPath = path.resolve(process.cwd(), '../schemas/digital_twin_schema.json');
     const graph = fs.existsSync(schemaPath) ? JSON.parse(fs.readFileSync(schemaPath, 'utf-8')) : { nodes: [], edges: [] };
 
-    // Fetch the Patch & Rerun endpoint on the Python Engine
     const engineRes = await fetch(`${ENGINE_URL}/api/engine/patch-and-rerun`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ graph, report: mockRedisFailureSim }),
     });
 
-    if (!engineRes.ok) {
-      const errText = await engineRes.text();
-      throw new Error(`Python Engine Error: ${errText}`);
-    }
+    if (!engineRes.ok) throw new Error(`Engine Error: ${await engineRes.text()}`);
 
     const deltaData = await engineRes.json();
     return NextResponse.json(deltaData);
