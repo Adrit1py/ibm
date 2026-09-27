@@ -1,4 +1,3 @@
-<file path="core/agents/package.json">
 {
   "name": "@bob-simulator/agents",
   "version": "1.0.0",
@@ -19,4 +18,3 @@
     "typescript": "^7.0.2"
   }
 }
-</file>
