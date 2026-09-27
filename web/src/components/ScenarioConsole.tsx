@@ -32,74 +32,74 @@ export default function ScenarioConsole() {
   const displayLogs = isSimulating ? liveLogs : (currentTick?.agentLogs || []);
 
   return (
-    <div className="flex flex-col h-full bg-white">
+    <div className="flex flex-col h-full bg-brand-surface">
       
       {/* Console Header */}
-      <div className="px-4 py-3 border-b border-ibm-gray20 flex items-center justify-between">
-        <h2 className="text-xs font-semibold uppercase tracking-wider text-ibm-gray100 flex items-center">
-          <Terminal size={14} className="mr-2" /> Orchestrator Console
+      <div className="px-4 py-3 border-b border-brand-border bg-brand-bg flex items-center justify-between">
+        <h2 className="text-xs font-bold uppercase tracking-wider text-brand-navy flex items-center">
+          <Terminal size={14} className="mr-2 text-brand-amber" /> Orchestrator Console
         </h2>
-        {isSimulating && <Loader2 className="animate-spin text-ibm-blue" size={14} />}
+        {isSimulating && <Loader2 className="animate-spin text-brand-amber" size={14} />}
       </div>
 
       {/* True Dark Terminal Output */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-1.5 font-mono text-[12px] bg-ibm-gray100 text-ibm-gray10">
+      <div className="flex-1 overflow-y-auto p-4 space-y-1.5 font-mono text-[12px] bg-brand-navy text-slate-300">
         {!isSimulating && !result && (
-          <div className="text-ibm-gray60">System initialized. Awaiting injection parameters...</div>
+          <div className="text-slate-500 font-medium">System ready. Waiting for injection parameters...</div>
         )}
         
         {/* Yellowish accent for the prompt */}
         {!isSimulating && scenarioText && (
-          <div className="text-ibm-yellow mb-4 border-l-2 border-ibm-yellow pl-3 py-1 bg-ibm-gray80/30">
+          <div className="text-brand-amber mb-4 border-l-2 border-brand-amber pl-3 py-1 bg-slate-800/50 font-bold">
             $ execute_scenario "{scenarioText}"
           </div>
         )}
         
         {displayLogs.map((log, idx) => (
           <div key={idx} className="flex space-x-3">
-            <span className="text-ibm-gray60 shrink-0 w-12">
+            <span className="text-slate-500 shrink-0 w-12 font-semibold">
               {isSimulating ? "LIVE" : `T+${currentTick?.timeOffsetSec || 0}s`}
             </span> 
-            <span className={log.includes('[Error]') ? 'text-ibm-red' : 'text-ibm-gray20'}>{log}</span>
+            <span className={log.includes('[Error]') ? 'text-status-danger' : 'text-slate-200'}>{log}</span>
           </div>
         ))}
         <div ref={logsEndRef} />
       </div>
 
       {/* Input Area */}
-      <div className="bg-white border-t border-ibm-gray30 flex flex-col">
+      <div className="bg-brand-surface border-t border-brand-border flex flex-col">
         
-        <div className="px-4 py-3 bg-ibm-gray10 border-b border-ibm-gray20 flex flex-wrap gap-2">
+        <div className="px-4 py-3 bg-brand-bg border-b border-brand-border flex flex-wrap gap-2">
           {DEMO_PRESETS.map((preset, idx) => (
             <button
               key={idx}
               type="button"
               onClick={() => setInput(preset.prompt)}
               disabled={isSimulating}
-              className="text-[11px] font-medium bg-white hover:bg-ibm-gray20 text-ibm-gray100 border border-ibm-gray30 px-3 py-1 transition-none disabled:bg-ibm-gray10 disabled:text-ibm-gray30"
+              className="text-[11px] font-semibold bg-brand-surface hover:bg-brand-border text-brand-navy border border-brand-border px-3 py-1.5 rounded transition-colors disabled:bg-slate-100 disabled:text-slate-400 shadow-sm"
             >
               {preset.label}
             </button>
           ))}
         </div>
 
-        <form onSubmit={handleSubmit} className="flex p-4 space-x-3 bg-white">
-          <div className="flex-1 border-b-2 border-ibm-gray30 focus-within:border-ibm-blue transition-none">
+        <form onSubmit={handleSubmit} className="flex p-4 space-x-3 bg-brand-surface">
+          <div className="flex-1 border-2 border-brand-border rounded focus-within:border-brand-amber transition-colors bg-white shadow-inner">
             <input
               type="text"
               value={input}
               onChange={(e) => setInput(e.target.value)}
               disabled={isSimulating}
               placeholder="Define a failure condition..."
-              className="w-full bg-transparent px-2 py-2 text-sm text-ibm-gray100 focus:outline-none disabled:opacity-50"
+              className="w-full bg-transparent px-3 py-2.5 text-sm text-brand-navy font-medium focus:outline-none disabled:opacity-50"
             />
           </div>
           <button 
             type="submit"
             disabled={isSimulating || !input.trim()}
-            className="bg-ibm-blue hover:bg-ibm-blueHover disabled:bg-ibm-gray30 disabled:text-ibm-gray60 text-white px-4 py-2 transition-none flex items-center"
+            className="bg-brand-navy hover:bg-brand-navyHover disabled:bg-slate-200 disabled:text-slate-500 text-white px-5 py-2.5 rounded transition-colors flex items-center shadow-md font-bold"
           >
-            {isSimulating ? <Loader2 size={16} className="animate-spin" /> : <Play size={16} />}
+            {isSimulating ? <Loader2 size={16} className="animate-spin" /> : <><Play size={16} className="mr-2" fill="currentColor"/> Execute</>}
           </button>
         </form>
       </div>
