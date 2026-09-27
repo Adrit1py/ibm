@@ -1,6 +1,5 @@
-// /web/src/components/TopologyCanvas.tsx
 import React from 'react';
-import ReactFlow, { Background, Controls } from 'reactflow';
+import ReactFlow, { Background, Controls, MiniMap } from 'reactflow';
 import 'reactflow/dist/style.css';
 import type { SystemNode, SystemEdge } from '../../../shared/types/digital_twin';
 import { useElkLayout } from '../hooks/useElkLayout';
@@ -11,29 +10,26 @@ interface TopologyCanvasProps {
 }
 
 export default function TopologyCanvas({ nodes, edges }: TopologyCanvasProps) {
-  // Pass the domain data to ELK for layout calculation
   const { layoutedNodes, layoutedEdges, isLayingOut } = useElkLayout(nodes, edges);
 
-  if (isLayingOut) {
-    return (
-      <div className="w-full h-full bg-slate-950 flex items-center justify-center text-slate-500 font-mono text-sm">
-        Calculating architecture layout...
-      </div>
-    );
-  }
+  if (isLayingOut) return null;
 
   return (
-    <div className="w-full h-full bg-slate-950 transition-opacity duration-300">
+    <div className="w-full h-full bg-brand-bg">
       <ReactFlow
         nodes={layoutedNodes}
         edges={layoutedEdges}
         fitView
-        fitViewOptions={{ padding: 0.2, duration: 800 }} // Smooth zoom after layout
+        fitViewOptions={{ padding: 0.2 }}
         proOptions={{ hideAttribution: true }}
-        nodesDraggable={true} // Allow developer to adjust ELK's result
       >
-        <Background color="#334155" gap={20} size={1} />
-        <Controls className="bg-slate-800 border-slate-700 fill-slate-200" />
+        <Background color="#cbd5e1" gap={24} size={2} />
+        <Controls className="bg-brand-surface border border-brand-border fill-brand-navy shadow-flat" />
+        <MiniMap 
+          nodeColor={(n) => n.style?.borderLeft?.toString().split(' ')[2] || '#e2e8f0'}
+          maskColor="rgba(248, 250, 252, 0.7)"
+          className="bg-brand-surface border border-brand-border rounded-md shadow-flat"
+        />
       </ReactFlow>
     </div>
   );

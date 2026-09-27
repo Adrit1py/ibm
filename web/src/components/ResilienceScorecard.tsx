@@ -1,60 +1,63 @@
 import React from 'react';
 import { useSimulationStore } from '../store/useSimulationStore';
-import { ShieldAlert, Activity, CheckCircle2 } from 'lucide-react';
+import { ShieldAlert, Activity, CheckCircle } from 'lucide-react';
 
 export default function ResilienceScorecard() {
   const { result } = useSimulationStore();
-  const score = result?.resilience_score;
-  const blast = result?.blast_radius;
+  
+  const backendResult = result as any;
+  const score = backendResult?.resilience_score;
+  const blast = backendResult?.blast_radius;
 
   if (!score || !blast) return null;
 
-  const gradeColors: Record<string, string> = {
-    'A+': 'text-emerald-400 border-emerald-500/50 bg-emerald-950/40',
-    'A': 'text-emerald-400 border-emerald-500/50 bg-emerald-950/40',
-    'B': 'text-blue-400 border-blue-500/50 bg-blue-950/40',
-    'C': 'text-amber-400 border-amber-500/50 bg-amber-950/40',
-    'D': 'text-orange-400 border-orange-500/50 bg-orange-950/40',
-    'F': 'text-rose-400 border-rose-500/50 bg-rose-950/40',
+  const gradeColors: Record<string, { bg: string, text: string, border: string }> = {
+    'A+': { bg: 'bg-status-successBg', text: 'text-status-success', border: 'border-status-success' },
+    'A':  { bg: 'bg-status-successBg', text: 'text-status-success', border: 'border-status-success' },
+    'B':  { bg: 'bg-status-warningBg', text: 'text-status-warning', border: 'border-status-warning' }, 
+    'C':  { bg: 'bg-status-warningBg', text: 'text-status-warning', border: 'border-status-warning' },
+    'D':  { bg: 'bg-status-dangerBg', text: 'text-status-danger', border: 'border-status-danger' },
+    'F':  { bg: 'bg-status-dangerBg', text: 'text-status-danger', border: 'border-status-danger' },
   };
 
+  const theme = gradeColors[score.letter_grade] || { bg: 'bg-brand-bg', text: 'text-brand-navy', border: 'border-brand-border' };
+
   return (
-    <div className="absolute top-4 right-4 z-20 flex items-center space-x-3 bg-slate-900/90 backdrop-blur-md border border-slate-800 p-3 rounded-xl shadow-2xl">
-      {/* Grade Badge */}
-      <div className={`flex flex-col items-center justify-center w-12 h-12 rounded-lg border font-mono font-bold text-lg ${gradeColors[score.letter_grade] || 'text-slate-400'}`}>
+    <div className={`absolute top-6 right-6 z-20 flex bg-brand-surface border border-brand-border border-l-4 ${theme.border} shadow-floating rounded-md overflow-hidden`}>
+      
+      <div className={`flex flex-col items-center justify-center w-16 border-r border-brand-border font-mono font-extrabold text-2xl ${theme.bg} ${theme.text}`}>
         {score.letter_grade}
       </div>
 
-      {/* Resilience Score */}
-      <div className="flex flex-col border-r border-slate-800 pr-3">
-        <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider flex items-center">
-          <Activity size={12} className="mr-1 text-blue-400" /> Resilience
-        </span>
-        <span className="text-base font-extrabold text-white font-mono">
-          {score.overall_resilience_score.toFixed(1)}<span className="text-xs text-slate-500">/100</span>
-        </span>
-      </div>
+      <div className="flex">
+        <div className="flex flex-col justify-center border-r border-brand-border px-5 py-2 min-w-[110px]">
+          <span className="text-[10px] uppercase font-bold text-brand-textMuted tracking-wider flex items-center">
+            <Activity size={12} className="mr-1.5 text-brand-navy" /> Score
+          </span>
+          <span className="text-xl font-black text-brand-navy font-mono mt-0.5">
+            {score.overall_resilience_score.toFixed(1)}
+          </span>
+        </div>
 
-      {/* Blast Radius */}
-      <div className="flex flex-col border-r border-slate-800 pr-3">
-        <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider flex items-center">
-          <ShieldAlert size={12} className="mr-1 text-rose-400" /> Blast Radius
-        </span>
-        <span className="text-base font-extrabold text-rose-400 font-mono">
-          {blast.blast_radius_pct.toFixed(0)}%
-        </span>
-      </div>
+        <div className="flex flex-col justify-center border-r border-brand-border px-5 py-2 min-w-[110px]">
+          <span className="text-[10px] uppercase font-bold text-brand-textMuted tracking-wider flex items-center">
+            <ShieldAlert size={12} className="mr-1.5 text-status-danger" /> Radius
+          </span>
+          <span className="text-xl font-black text-status-danger font-mono mt-0.5">
+            {blast.blast_radius_pct.toFixed(0)}%
+          </span>
+        </div>
 
-      {/* Status Mode */}
-      <div className="flex flex-col pl-1">
-        <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Status</span>
-        <span className="text-xs font-semibold text-slate-200 flex items-center mt-0.5">
-          {result?.is_patched_run ? (
-            <span className="text-emerald-400 flex items-center"><CheckCircle2 size={12} className="mr-1" /> Patched</span>
-          ) : (
-            <span className="text-rose-400 flex items-center">Unmitigated</span>
-          )}
-        </span>
+        <div className="flex flex-col justify-center px-5 py-2 bg-brand-bg min-w-[130px]">
+          <span className="text-[10px] uppercase font-bold text-brand-textMuted tracking-wider">Configuration</span>
+          <span className="text-sm font-bold mt-1">
+            {backendResult?.is_patched_run ? (
+              <span className="text-status-success flex items-center"><CheckCircle size={14} className="mr-1.5" /> Mitigated</span>
+            ) : (
+              <span className="text-brand-textMuted">Baseline</span>
+            )}
+          </span>
+        </div>
       </div>
     </div>
   );

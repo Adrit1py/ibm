@@ -1,27 +1,23 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useSimulationStore } from '../store/useSimulationStore';
-import { Terminal, Loader2 } from 'lucide-react';
+import { Terminal, Loader2, Play } from 'lucide-react';
 
 const DEMO_PRESETS = [
-  { label: '🔥 Black Friday Cascade', prompt: 'What happens if Redis cache latency spikes to 5000ms during Black Friday peak traffic?' },
-  { label: '💳 Silent Payment Hang', prompt: 'What if the Stripe Payment API hangs for 30 seconds with no response?' },
-  { label: '🛡️ Self-Healing Auth', prompt: 'What if auth-service fails completely during peak traffic?' },
+  { label: 'Black Friday Cascade', prompt: 'What happens if Redis cache latency spikes to 5000ms during Black Friday peak traffic?' },
+  { label: 'Silent Payment Hang', prompt: 'What if the Stripe Payment API hangs for 30 seconds with no response?' },
+  { label: 'Self-Healing Auth', prompt: 'What if auth-service fails completely during peak traffic?' },
 ];
 
 export default function ScenarioConsole() {
   const [input, setInput] = useState('');
-  const { 
-    getCurrentTick, 
-    result, 
-    isSimulating, 
-    liveLogs, 
-    runSimulation 
-  } = useSimulationStore();
+  const { getCurrentTick, result, isSimulating, liveLogs, runSimulation } = useSimulationStore();
   
   const currentTick = getCurrentTick();
   const logsEndRef = useRef<HTMLDivElement>(null);
 
-  // Auto-scroll to the bottom whenever live logs or timeline logs update
+  const backendResult = result as any;
+  const scenarioText = backendResult?.scenario_prompt || result?.scenarioDescription;
+
   useEffect(() => {
     logsEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [currentTick?.agentLogs, liveLogs]);
@@ -29,91 +25,81 @@ export default function ScenarioConsole() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!input.trim() || isSimulating) return;
-    
-    // Trigger the real API integration via the Zustand store
     runSimulation(input);
     setInput('');
   };
 
-  // Decide which logs to show based on state
   const displayLogs = isSimulating ? liveLogs : (currentTick?.agentLogs || []);
 
   return (
-    <div className="flex flex-col h-full bg-slate-900 border-r border-slate-800">
+    <div className="flex flex-col h-full bg-brand-surface">
       
-      {/* Header */}
-      <div className="p-4 border-b border-slate-800 bg-slate-950 flex items-center justify-between">
-        <div className="flex items-center space-x-2">
-          <Terminal className="text-emerald-500" size={20} />
-          <h2 className="text-sm font-bold text-slate-200 tracking-wide">Bob Agent Console</h2>
-        </div>
-        {/* Render a spinner when simulating */}
-        {isSimulating && <Loader2 className="animate-spin text-blue-500" size={16} />}
+      {/* Console Header */}
+      <div className="px-4 py-3 border-b border-brand-border bg-brand-bg flex items-center justify-between">
+        <h2 className="text-xs font-bold uppercase tracking-wider text-brand-navy flex items-center">
+          <Terminal size={14} className="mr-2 text-brand-amber" /> Orchestrator Console
+        </h2>
+        {isSimulating && <Loader2 className="animate-spin text-brand-amber" size={14} />}
       </div>
 
-      {/* Log Viewer */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-2 font-mono text-xs text-slate-300">
+      {/* True Dark Terminal Output */}
+      <div className="flex-1 overflow-y-auto p-4 space-y-1.5 font-mono text-[12px] bg-brand-navy text-slate-300">
         {!isSimulating && !result && (
-          <div className="text-slate-500 italic">System initialized. Awaiting scenario...</div>
+          <div className="text-slate-500 font-medium">System ready. Waiting for injection parameters...</div>
         )}
         
-        {/* Updated from result.scenarioDescription to result.scenario_prompt per digital twin schema */}
-        {!isSimulating && result?.scenario_prompt && (
-          <div className="text-emerald-400">&gt; Scenario: {result.scenario_prompt}</div>
+        {/* Yellowish accent for the prompt */}
+        {!isSimulating && scenarioText && (
+          <div className="text-brand-amber mb-4 border-l-2 border-brand-amber pl-3 py-1 bg-slate-800/50 font-bold">
+            $ execute_scenario "{scenarioText}"
+          </div>
         )}
         
         {displayLogs.map((log, idx) => (
-          <div key={idx} className="border-l-2 border-slate-700 pl-3">
-            <span className="text-blue-400">
-              {isSimulating ? "[Live]" : `[${currentTick?.timeOffsetSec || 0}s]`}
-            </span> {log}
+          <div key={idx} className="flex space-x-3">
+            <span className="text-slate-500 shrink-0 w-12 font-semibold">
+              {isSimulating ? "LIVE" : `T+${currentTick?.timeOffsetSec || 0}s`}
+            </span> 
+            <span className={log.includes('[Error]') ? 'text-status-danger' : 'text-slate-200'}>{log}</span>
           </div>
         ))}
         <div ref={logsEndRef} />
       </div>
 
-      {/* Command Input Area */}
-      <div className="p-4 bg-slate-950 border-t border-slate-800 flex flex-col space-y-3">
+      {/* Input Area */}
+      <div className="bg-brand-surface border-t border-brand-border flex flex-col">
         
-        {/* Quick Demo Scenarios */}
-        <div className="flex flex-wrap gap-1.5">
+        <div className="px-4 py-3 bg-brand-bg border-b border-brand-border flex flex-wrap gap-2">
           {DEMO_PRESETS.map((preset, idx) => (
             <button
               key={idx}
               type="button"
-              onClick={() => {
-                setInput(preset.prompt);
-              }}
+              onClick={() => setInput(preset.prompt)}
               disabled={isSimulating}
-              className="text-[10px] bg-slate-800/80 hover:bg-slate-700 text-slate-300 border border-slate-700/60 px-2 py-1 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="text-[11px] font-semibold bg-brand-surface hover:bg-brand-border text-brand-navy border border-brand-border px-3 py-1.5 rounded transition-colors disabled:bg-slate-100 disabled:text-slate-400 shadow-sm"
             >
               {preset.label}
             </button>
           ))}
         </div>
 
-        <form onSubmit={handleSubmit} className="flex flex-col space-y-2">
-          <input
-            type="text"
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            disabled={isSimulating}
-            placeholder='e.g. "What if Redis drops connections for 30s?"'
-            className="w-full bg-slate-800 border border-slate-700 rounded p-3 text-sm text-slate-200 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all placeholder:text-slate-500 disabled:opacity-50 disabled:cursor-not-allowed"
-          />
+        <form onSubmit={handleSubmit} className="flex p-4 space-x-3 bg-brand-surface">
+          <div className="flex-1 border-2 border-brand-border rounded focus-within:border-brand-amber transition-colors bg-white shadow-inner">
+            <input
+              type="text"
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              disabled={isSimulating}
+              placeholder="Define a failure condition..."
+              className="w-full bg-transparent px-3 py-2.5 text-sm text-brand-navy font-medium focus:outline-none disabled:opacity-50"
+            />
+          </div>
           <button 
             type="submit"
-            disabled={isSimulating}
-            className="w-full bg-blue-600 hover:bg-blue-500 disabled:bg-slate-700 disabled:text-slate-400 text-white text-sm font-medium py-2 px-4 rounded transition-colors flex items-center justify-center space-x-2"
+            disabled={isSimulating || !input.trim()}
+            className="bg-brand-navy hover:bg-brand-navyHover disabled:bg-slate-200 disabled:text-slate-500 text-white px-5 py-2.5 rounded transition-colors flex items-center shadow-md font-bold"
           >
-            {isSimulating ? (
-              <>
-                <Loader2 size={16} className="animate-spin" />
-                <span>Analyzing...</span>
-              </>
-            ) : (
-              <span>Run Simulation</span>
-            )}
+            {isSimulating ? <Loader2 size={16} className="animate-spin" /> : <><Play size={16} className="mr-2" fill="currentColor"/> Execute</>}
           </button>
         </form>
       </div>
