@@ -25,12 +25,17 @@ export interface SimulationTick {
 }
 
 export interface SimulationResult {
-  scenarioId: string;
-  scenarioDescription: string;
+  scenarioId?: string;
+  scenarioDescription?: string;
   timeline: SimulationTick[];
   suggestedPatch?: {
     filepath: string;
     diff: string;
     description: string;
   };
+  resilience_score?: any;
+  blast_radius?: any;
+  is_patched_run?: boolean;
+  suggested_patches?: any[];
+  [key: string]: any;
 }
