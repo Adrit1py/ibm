@@ -4,10 +4,10 @@
 
 @layer base {
   body {
-    @apply bg-slate-50 text-slate-900 overflow-hidden;
+    @apply bg-gray-50 text-gray-900 overflow-hidden antialiased;
   }
 }
 
 .react-flow__panel {
-  @apply bg-white p-2 rounded-md shadow-md border border-slate-200;
+  @apply bg-white p-2 rounded-sm shadow-sm border border-gray-300;
 }
