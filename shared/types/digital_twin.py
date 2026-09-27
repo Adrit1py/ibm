@@ -1,51 +1,89 @@
-from datetime import datetime
+"""Shared Type Definitions for DigitalTwinSchema across all Python modules.
+
+Mirror of core/parser/models.py to guarantee strict schema alignment.
+"""
+
+from __future__ import annotations
+
+import json
+from datetime import datetime, timezone
 from enum import Enum
-from typing import Any, Dict, List, Optional
-from pydantic import BaseModel, Field
+
+from pydantic import BaseModel, ConfigDict, Field
+
 
 class NodeType(str, Enum):
+    SERVICE = "service"
+    DATABASE = "database"
+    CACHE = "cache"
+    QUEUE = "queue"
+    GATEWAY = "gateway"
+    EXTERNAL_API = "external_api"
+
     service = "service"
     database = "database"
     cache = "cache"
     queue = "queue"
-    external_api = "external_api"
     gateway = "gateway"
-    unknown = "unknown"
+    external_api = "external_api"
+
 
 class EdgeType(str, Enum):
+    SYNC_CALL = "sync_call"
+    ASYNC_CALL = "async_call"
+    DEPENDS_ON = "depends_on"
+
     sync_call = "sync_call"
     async_call = "async_call"
-    timeout = "timeout"
-    retry = "retry"
-    circuit_breaker = "circuit_breaker"
-    fallback = "fallback"
     depends_on = "depends_on"
 
-class GraphNode(BaseModel):
-    id: str = Field(description="Stable unique node id, e.g. 'service:payment-api'.")
-    type: NodeType
-    name: str
-    language: Optional[str] = Field(default=None, description="e.g. python, node, go, java. Null if not code-backed (e.g. a managed DB).")
-    source_files: Optional[List[str]] = Field(default=None, description="Repo-relative paths that contributed to detecting this node.")
-    metadata: Optional[Dict[str, Any]] = Field(default=None, description="Free-form extras: image name, port, env vars relevant to resilience (timeouts, pool size), etc. Intentionally open so we don't need a schema PR for every new metadata key — but structural fields above are fixed.")
 
 class RetryPolicy(BaseModel):
-    max_attempts: Optional[int] = None
-    backoff: Optional[str] = None
+    max_attempts: int | None = None
+    backoff: str | None = None
+
+
+class GraphNode(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    id: str
+    type: NodeType
+    name: str
+    language: str | None = None
+    source_files: list[str] = Field(default_factory=list)
+    metadata: dict[str, object] = Field(default_factory=dict)
+
 
 class GraphEdge(BaseModel):
-    source: str = Field(description="GraphNode id.")
-    target: str = Field(description="GraphNode id.")
+    model_config = ConfigDict(extra="ignore")
+
+    source: str
+    target: str
     type: EdgeType
-    timeout_ms: Optional[int] = None
-    retry_policy: Optional[RetryPolicy] = None
-    source_files: Optional[List[str]] = None
-    metadata: Optional[Dict[str, Any]] = None
+    timeout_ms: int | None = None
+    retry_policy: RetryPolicy | None = None
+    source_files: list[str] = Field(default_factory=list)
+    metadata: dict[str, object] = Field(default_factory=dict)
+
 
 class DigitalTwinSchema(BaseModel):
-    schema_version: str = Field(description="Semver of this schema shape, e.g. 0.1.0. Consumers should check this before parsing.")
-    generated_at: datetime = Field(description="ISO-8601 UTC timestamp of when the graph was generated.")
-    repo_path: str = Field(description="Absolute or repo-relative path that was parsed.")
-    warnings: Optional[List[str]] = Field(default_factory=list, description="Non-fatal issues encountered during parsing (missing files skipped, unparseable config, ambiguous edges, etc). Always present so downstream consumers can surface data-quality caveats instead of silently trusting an incomplete graph.")
-    nodes: List[GraphNode]
-    edges: List[GraphEdge]
+    model_config = ConfigDict(extra="ignore")
+
+    schema_version: str = "0.1.0"
+    generated_at: datetime = Field(
+        default_factory=lambda: datetime.now(timezone.utc)
+    )
+    repo_path: str
+    nodes: list[GraphNode] = Field(default_factory=list)
+    edges: list[GraphEdge] = Field(default_factory=list)
+    warnings: list[str] = Field(default_factory=list)
+
+    def to_json(self, indent: int = 2) -> str:
+        return self.model_dump_json(indent=indent)
+
+    @classmethod
+    from_json: type[DigitalTwinSchema]
+
+DigitalTwinSchema.from_json = classmethod(
+    lambda cls, json_str: cls.model_validate_json(json_str)
+)
