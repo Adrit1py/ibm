@@ -2,15 +2,18 @@
 
 import React, { useState } from 'react';
 import { useSimulationStore } from '../store/useSimulationStore';
+import { useRepoStore } from '../store/useRepoStore';
+import RepoConnect from '../components/RepoConnect';
 import TopologyCanvas from '../components/TopologyCanvas';
 import TimelineScrubber from '../components/TimelineScrubber';
 import ScenarioConsole from '../components/ScenarioConsole';
 import ResilienceScorecard from '../components/ResilienceScorecard';
-import { Loader2, Download, BookOpen, X } from 'lucide-react';
+import { Loader2, Download, BookOpen, X, RefreshCw } from 'lucide-react';
 
 export default function BobSimulatorDashboard() {
   const [isGuideOpen, setIsGuideOpen] = useState(false);
   const { getCurrentTick, result, applyPatchAndRerun, isSimulating } = useSimulationStore();
+  const { repoId, nodeCount, edgeCount, reset: resetRepo } = useRepoStore();
   const currentTick = getCurrentTick();
 
   const backendResult = result as any;
@@ -27,20 +30,44 @@ export default function BobSimulatorDashboard() {
     URL.revokeObjectURL(url);
   };
 
+  // Gate the whole dashboard behind a connected repo — nothing below this
+  // renders until the user has analyzed a repository.
+  if (!repoId) {
+    return (
+      <div className="flex flex-col h-screen w-full bg-brand-bg font-sans">
+        <header className="h-14 bg-brand-navy text-white flex items-center px-6 flex-shrink-0 border-b-[3px] border-brand-amber shadow-sm">
+          <div className="flex items-center space-x-3">
+            <div className="w-7 h-7 bg-brand-amber text-brand-navy flex items-center justify-center font-bold text-sm rounded-sm">B</div>
+            <h1 className="font-semibold text-sm tracking-wide">Bob Simulator <span className="text-slate-400 font-normal ml-2">| Resilience Engine</span></h1>
+          </div>
+        </header>
+        <main className="flex-1">
+          <RepoConnect />
+        </main>
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col h-screen w-full bg-brand-bg font-sans">
-      
+
       {/* Deep Indigo Header with Amber Accent */}
       <header className="h-14 bg-brand-navy text-white flex items-center justify-between px-6 flex-shrink-0 border-b-[3px] border-brand-amber shadow-sm">
         <div className="flex items-center space-x-3">
           <div className="w-7 h-7 bg-brand-amber text-brand-navy flex items-center justify-center font-bold text-sm rounded-sm">B</div>
           <h1 className="font-semibold text-sm tracking-wide">Bob Simulator <span className="text-slate-400 font-normal ml-2">| Resilience Engine</span></h1>
+          <span className="text-xs text-slate-400 font-mono ml-4 border-l border-slate-700 pl-4">
+            {nodeCount} nodes · {edgeCount} edges
+          </span>
         </div>
         <div className="flex items-center space-x-6 text-sm font-medium">
+          <button onClick={resetRepo} className="flex items-center text-slate-300 hover:text-brand-amber transition-colors">
+            <RefreshCw size={16} className="mr-2" /> Change Repo
+          </button>
           <button onClick={() => setIsGuideOpen(true)} className="flex items-center text-slate-300 hover:text-brand-amber transition-colors">
             <BookOpen size={16} className="mr-2" /> Documentation
           </button>
-          <button 
+          <button
             onClick={exportReport}
             disabled={!result}
             className="flex items-center text-brand-navy bg-white hover:bg-slate-100 disabled:bg-slate-700 disabled:text-slate-400 px-4 py-1.5 rounded-sm shadow-sm transition-colors"
@@ -52,7 +79,7 @@ export default function BobSimulatorDashboard() {
 
       {/* Main Content Split */}
       <div className="flex flex-1 overflow-hidden">
-        
+
         {/* Left Panel */}
         <aside className="w-[450px] flex flex-col bg-brand-surface border-r border-brand-border flex-shrink-0 z-10 shadow-flat">
           <div className="flex-1 overflow-hidden">
@@ -68,7 +95,7 @@ export default function BobSimulatorDashboard() {
                   {suggestedPatch.target_file || suggestedPatch.filepath || "system_config"}
                 </span>
               </div>
-              
+
               <div className="p-4 flex-1 flex flex-col overflow-hidden">
                 <p className="text-xs text-brand-textMuted mb-3 font-medium leading-relaxed">
                   {suggestedPatch.description}
@@ -77,7 +104,7 @@ export default function BobSimulatorDashboard() {
                   <pre className="whitespace-pre-wrap">
                     {suggestedPatch.diff.split('\n').map((line: string, i: number) => (
                       <div key={i} className={
-                        line.startsWith('+') ? 'bg-status-successBg text-status-success px-1' : 
+                        line.startsWith('+') ? 'bg-status-successBg text-status-success px-1' :
                         line.startsWith('-') ? 'bg-status-dangerBg text-status-danger px-1' : 'text-brand-text px-1'
                       }>
                         {line}
@@ -85,8 +112,8 @@ export default function BobSimulatorDashboard() {
                     ))}
                   </pre>
                 </div>
-                <button 
-                  onClick={() => applyPatchAndRerun()}
+                <button
+                  onClick={() => applyPatchAndRerun(repoId)}
                   disabled={isSimulating}
                   className="w-full bg-brand-amber hover:bg-brand-amberHover disabled:bg-slate-200 disabled:text-slate-400 disabled:border-slate-200 text-white text-sm py-2.5 rounded shadow-sm transition-colors flex items-center justify-center font-bold tracking-wide"
                 >
@@ -143,12 +170,12 @@ export default function BobSimulatorDashboard() {
               </button>
             </div>
             <div className="p-6 space-y-4 text-sm text-brand-text leading-relaxed">
-              <p className="font-medium">Bob Simulator evaluates distributed system resilience through deterministic fault injection.</p>
+              <p className="font-medium">Bob Simulator evaluates distributed system resilience through deterministic fault injection on a repository you provide.</p>
               <div className="space-y-4 mt-4">
-                <div className="flex"><span className="w-6 h-6 rounded bg-brand-navy text-brand-amber flex items-center justify-center font-bold text-xs mr-3 shrink-0">1</span><p><strong>Inject Fault:</strong> Select a preset or type a natural language prompt in the console to inject failures into the loaded <code>digital_twin_schema.json</code>.</p></div>
-                <div className="flex"><span className="w-6 h-6 rounded bg-brand-navy text-brand-amber flex items-center justify-center font-bold text-xs mr-3 shrink-0">2</span><p><strong>Trace Propagation:</strong> Use the scrubber to step through the exact failure cascade across network boundaries.</p></div>
-                <div className="flex"><span className="w-6 h-6 rounded bg-brand-navy text-brand-amber flex items-center justify-center font-bold text-xs mr-3 shrink-0">3</span><p><strong>Review Metrics:</strong> Observe the quantitative blast radius and resilience score in the upper right HUD.</p></div>
-                <div className="flex"><span className="w-6 h-6 rounded bg-brand-navy text-brand-amber flex items-center justify-center font-bold text-xs mr-3 shrink-0">4</span><p><strong>Apply Mitigation:</strong> Review the generated AST code patch and apply it to simulate a remediated run.</p></div>
+                <div className="flex"><span className="w-6 h-6 rounded bg-brand-navy text-brand-amber flex items-center justify-center font-bold text-xs mr-3 shrink-0">1</span><p><strong>Connect Repo:</strong> Point Bob at a public GitHub repository. It clones and statically analyzes it into a dependency graph.</p></div>
+                <div className="flex"><span className="w-6 h-6 rounded bg-brand-navy text-brand-amber flex items-center justify-center font-bold text-xs mr-3 shrink-0">2</span><p><strong>Inject Fault:</strong> Select a preset or type a natural language "what if" prompt in the console.</p></div>
+                <div className="flex"><span className="w-6 h-6 rounded bg-brand-navy text-brand-amber flex items-center justify-center font-bold text-xs mr-3 shrink-0">3</span><p><strong>Trace Propagation:</strong> Use the scrubber to step through the exact failure cascade across network boundaries.</p></div>
+                <div className="flex"><span className="w-6 h-6 rounded bg-brand-navy text-brand-amber flex items-center justify-center font-bold text-xs mr-3 shrink-0">4</span><p><strong>Apply Mitigation:</strong> Review the generated code patch and apply it to simulate a remediated run.</p></div>
               </div>
             </div>
             <div className="px-6 py-4 bg-brand-bg border-t border-brand-border flex justify-end">
