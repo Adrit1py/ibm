@@ -8,12 +8,13 @@ interface SimStore {
   isPlaying: boolean;
   isSimulating: boolean;
   liveLogs: string[];
-  
+  error: string | null;
+
   loadSimulation: (data: SimulationResult) => void;
   setTickIndex: (index: number) => void;
   togglePlay: () => void;
   getCurrentTick: () => SimulationTick | null;
-  
+
   // Real API Integration Methods
   runSimulation: (prompt: string) => Promise<void>;
   applyPatchAndRerun: () => Promise<void>;
@@ -25,17 +26,20 @@ export const useSimulationStore = create<SimStore>((set, get) => ({
   isPlaying: false,
   isSimulating: false,
   liveLogs: [],
-  
-  loadSimulation: (data) => set({ 
-    result: data, 
-    currentTickIndex: 0, 
-    isPlaying: false, 
-    isSimulating: false 
-  }),
-  
+  error: null,
+
+  loadSimulation: (data) =>
+    set({
+      result: data,
+      currentTickIndex: 0,
+      isPlaying: false,
+      isSimulating: false,
+      error: null,
+    }),
+
   setTickIndex: (index) => set({ currentTickIndex: index }),
   togglePlay: () => set((state) => ({ isPlaying: !state.isPlaying })),
-  
+
   getCurrentTick: () => {
     const { result, currentTickIndex } = get();
     if (!result || !result.timeline.length) return null;
@@ -43,42 +47,61 @@ export const useSimulationStore = create<SimStore>((set, get) => ({
   },
 
   runSimulation: async (prompt: string) => {
-    set({ 
-      isSimulating: true, 
-      result: null, 
-      liveLogs: [`[User] ${prompt}`, "[System] Connecting to Python Engine..."] 
+    set({
+      isSimulating: true,
+      result: null,
+      error: null,
+      liveLogs: [`[User] ${prompt}`, '[System] Connecting to Python Engine...'],
     });
 
     try {
       const res = await fetch('/api/simulate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt })
+        body: JSON.stringify({ prompt }),
       });
-
-      if (!res.ok) throw new Error("Failed to fetch simulation from engine");
 
       const data = await res.json();
-      set({ result: data, isSimulating: false, liveLogs: [] });
+
+      if (!res.ok) {
+        // Route handler returns { error: string } on failure
+        throw new Error(data?.error || `Request failed with status ${res.status}`);
+      }
+
+      set({ result: data, isSimulating: false, error: null });
     } catch (err: any) {
-      set({ 
-        isSimulating: false, 
-        liveLogs: [...get().liveLogs, `[Error] ${err.message}`] 
-      });
+      const message = err?.message ?? 'Unknown error running simulation';
+      set((state) => ({
+        isSimulating: false,
+        error: message,
+        liveLogs: [...state.liveLogs, `[Error] ${message}`],
+      }));
     }
   },
 
   applyPatchAndRerun: async () => {
-    set({ isSimulating: true, liveLogs: ["[System] Applying patches and re-running simulation..."] });
+    set({
+      isSimulating: true,
+      error: null,
+      liveLogs: ['[System] Applying patches and re-running simulation...'],
+    });
     try {
       const res = await fetch('/api/patch', { method: 'POST' });
-      if (!res.ok) throw new Error("Failed to apply patches");
-      
       const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data?.error || `Request failed with status ${res.status}`);
+      }
+
       // data.patched contains the new SimulationRunResult from Python
-      set({ result: data.patched, isSimulating: false, liveLogs: [] });
+      set({ result: data.patched, isSimulating: false, error: null });
     } catch (err: any) {
-      set({ isSimulating: false, liveLogs: [...get().liveLogs, `[Error] ${err.message}`] });
+      const message = err?.message ?? 'Unknown error applying patch';
+      set((state) => ({
+        isSimulating: false,
+        error: message,
+        liveLogs: [...state.liveLogs, `[Error] ${message}`],
+      }));
     }
-  }
+  },
 }));

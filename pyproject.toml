@@ -1,0 +1,16 @@
+[project]
+name = "bob-simulator-engine"
+version = "1.0.0"
+description = "FastAPI Backend for Bob Simulator"
+requires-python = ">=3.9"
+dependencies = [
+    "fastapi>=0.104.0",
+    "uvicorn[standard]>=0.24.0",
+    "pydantic>=2.4.0",
+    "networkx>=3.1",
+    "PyYAML>=6.0",
+    "httpx>=0.25.0"
+]
+
+[tool.vercel]
+entrypoint = "core.engine.api:app"

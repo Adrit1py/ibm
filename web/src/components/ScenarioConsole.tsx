@@ -10,8 +10,8 @@ const DEMO_PRESETS = [
 
 export default function ScenarioConsole() {
   const [input, setInput] = useState('');
-  const { getCurrentTick, result, isSimulating, liveLogs, runSimulation } = useSimulationStore();
-  
+  const { getCurrentTick, result, isSimulating, liveLogs, error, runSimulation } = useSimulationStore();
+
   const currentTick = getCurrentTick();
   const logsEndRef = useRef<HTMLDivElement>(null);
 
@@ -29,11 +29,17 @@ export default function ScenarioConsole() {
     setInput('');
   };
 
-  const displayLogs = isSimulating ? liveLogs : (currentTick?.agentLogs || []);
+  // Keep showing liveLogs (which include any [Error] line) whenever there's
+  // no successful result yet — previously this fell back to an empty array
+  // the instant isSimulating flipped to false, hiding the error entirely.
+  const displayLogs =
+    isSimulating || (!result && liveLogs.length > 0)
+      ? liveLogs
+      : currentTick?.agentLogs || [];
 
   return (
     <div className="flex flex-col h-full bg-brand-surface">
-      
+
       {/* Console Header */}
       <div className="px-4 py-3 border-b border-brand-border bg-brand-bg flex items-center justify-between">
         <h2 className="text-xs font-bold uppercase tracking-wider text-brand-navy flex items-center">
@@ -44,22 +50,28 @@ export default function ScenarioConsole() {
 
       {/* True Dark Terminal Output */}
       <div className="flex-1 overflow-y-auto p-4 space-y-1.5 font-mono text-[12px] bg-brand-navy text-slate-300">
-        {!isSimulating && !result && (
+        {!isSimulating && !result && !error && (
           <div className="text-slate-500 font-medium">System ready. Waiting for injection parameters...</div>
         )}
-        
+
         {/* Yellowish accent for the prompt */}
         {!isSimulating && scenarioText && (
           <div className="text-brand-amber mb-4 border-l-2 border-brand-amber pl-3 py-1 bg-slate-800/50 font-bold">
             $ execute_scenario "{scenarioText}"
           </div>
         )}
-        
+
+        {error && !result && (
+          <div className="text-status-danger mb-3 border-l-2 border-status-danger pl-3 py-1 bg-red-950/30 font-bold">
+            Simulation failed — see log below.
+          </div>
+        )}
+
         {displayLogs.map((log, idx) => (
           <div key={idx} className="flex space-x-3">
             <span className="text-slate-500 shrink-0 w-12 font-semibold">
               {isSimulating ? "LIVE" : `T+${currentTick?.timeOffsetSec || 0}s`}
-            </span> 
+            </span>
             <span className={log.includes('[Error]') ? 'text-status-danger' : 'text-slate-200'}>{log}</span>
           </div>
         ))}
@@ -68,7 +80,7 @@ export default function ScenarioConsole() {
 
       {/* Input Area */}
       <div className="bg-brand-surface border-t border-brand-border flex flex-col">
-        
+
         <div className="px-4 py-3 bg-brand-bg border-b border-brand-border flex flex-wrap gap-2">
           {DEMO_PRESETS.map((preset, idx) => (
             <button
@@ -94,7 +106,7 @@ export default function ScenarioConsole() {
               className="w-full bg-transparent px-3 py-2.5 text-sm text-brand-navy font-medium focus:outline-none disabled:opacity-50"
             />
           </div>
-          <button 
+          <button
             type="submit"
             disabled={isSimulating || !input.trim()}
             className="bg-brand-navy hover:bg-brand-navyHover disabled:bg-slate-200 disabled:text-slate-500 text-white px-5 py-2.5 rounded transition-colors flex items-center shadow-md font-bold"
