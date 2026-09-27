@@ -1,8 +1,10 @@
-
 import { NextResponse } from 'next/server';
 import fs from 'fs';
 import path from 'path';
 import { mockRedisFailureSim } from '../../../mocks/simulation_fixture';
+
+// Use the deployed backend URL, falling back to localhost for local dev
+const ENGINE_URL = process.env.ENGINE_API_URL || 'http://127.0.0.1:8000';
 
 export async function POST(req: Request) {
   try {
@@ -10,7 +12,7 @@ export async function POST(req: Request) {
     const graph = fs.existsSync(schemaPath) ? JSON.parse(fs.readFileSync(schemaPath, 'utf-8')) : { nodes: [], edges: [] };
 
     // Fetch the Patch & Rerun endpoint on the Python Engine
-    const engineRes = await fetch('http://127.0.0.1:8000/api/engine/patch-and-rerun', {
+    const engineRes = await fetch(`${ENGINE_URL}/api/engine/patch-and-rerun`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ graph, report: mockRedisFailureSim }),
