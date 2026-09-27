@@ -1,33 +1,16 @@
-"""Graph loader and topology analysis utilities for Person 3.
-
-Loads and validates DigitalTwinSchema representations and converts them into
-NetworkX directed graphs for topological analysis.
-"""
+"""Graph loader and topology analysis utilities for Person 3."""
 
 from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Set, Tuple, Union
 
 import networkx as nx
 
-from shared.types.digital_twin import DigitalTwinSchema, GraphEdge, GraphNode
+from shared.types.digital_twin import DigitalTwinSchema
 
 
-def load_digital_twin(source: Union[str, Path, dict, DigitalTwinSchema]) -> DigitalTwinSchema:
-    """Read and validate a DigitalTwinSchema from a file path, JSON string, dict, or instance.
-
-    Args:
-        source: File path, JSON string, dictionary, or already-instantiated DigitalTwinSchema.
-
-    Returns:
-        Validated DigitalTwinSchema model.
-
-    Raises:
-        ValueError: If input cannot be parsed or validated.
-        FileNotFoundError: If path does not exist.
-    """
+def load_digital_twin(source: str | Path | dict | DigitalTwinSchema) -> DigitalTwinSchema:
     if isinstance(source, DigitalTwinSchema):
         return source
 
@@ -40,7 +23,6 @@ def load_digital_twin(source: Union[str, Path, dict, DigitalTwinSchema]) -> Digi
             text = path.read_text(encoding="utf-8")
             data = json.loads(text)
             return DigitalTwinSchema.model_validate(data)
-        # Attempt raw JSON string parsing if not an existing file
         if isinstance(source, str) and source.strip().startswith("{"):
             data = json.loads(source)
             return DigitalTwinSchema.model_validate(data)
@@ -50,30 +32,9 @@ def load_digital_twin(source: Union[str, Path, dict, DigitalTwinSchema]) -> Digi
 
 
 def to_networkx(graph: DigitalTwinSchema) -> nx.DiGraph:
-    """Convert a DigitalTwinSchema into a NetworkX DiGraph.
-
-    Nodes store:
-      - 'id': str
-      - 'name': str
-      - 'type': str
-      - 'model': GraphNode
-      - 'metadata': dict
-
-    Edges store:
-      - 'source': str
-      - 'target': str
-      - 'type': str
-      - 'timeout_ms': int | None
-      - 'retry_policy': RetryPolicy | None
-      - 'model': GraphEdge
-      - 'metadata': dict
-
-    Dangling edges where source or target is missing from node list are safely ignored.
-    """
     G = nx.DiGraph()
 
     for node in graph.nodes:
-        node_dict = node.model_dump() if hasattr(node, "model_dump") else dict(node)
         G.add_node(
             node.id,
             id=node.id,
@@ -102,18 +63,13 @@ def to_networkx(graph: DigitalTwinSchema) -> nx.DiGraph:
 
 def get_upstream_callers(
     G: nx.DiGraph, target_node_id: str, max_depth: int = 10
-) -> Dict[str, int]:
-    """Find all upstream nodes that depend on (call) target_node_id, with distance/depth.
-
-    In a call graph: caller (source) -> callee (target).
-    Upstream callers are predecessors in G.
-    """
+) -> dict[str, int]:
     if target_node_id not in G:
         return {}
 
-    upstream_depths: Dict[str, int] = {}
-    visited: Set[str] = {target_node_id}
-    queue: List[Tuple[str, int]] = [(target_node_id, 0)]
+    upstream_depths: dict[str, int] = {}
+    visited: set[str] = {target_node_id}
+    queue: list[tuple[str, int]] = [(target_node_id, 0)]
 
     while queue:
         current_id, depth = queue.pop(0)
@@ -131,14 +87,13 @@ def get_upstream_callers(
 
 def get_downstream_dependencies(
     G: nx.DiGraph, source_node_id: str, max_depth: int = 10
-) -> Dict[str, int]:
-    """Find all downstream nodes that source_node_id depends on, with distance/depth."""
+) -> dict[str, int]:
     if source_node_id not in G:
         return {}
 
-    downstream_depths: Dict[str, int] = {}
-    visited: Set[str] = {source_node_id}
-    queue: List[Tuple[str, int]] = [(source_node_id, 0)]
+    downstream_depths: dict[str, int] = {}
+    visited: set[str] = {source_node_id}
+    queue: list[tuple[str, int]] = [(source_node_id, 0)]
 
     while queue:
         current_id, depth = queue.pop(0)
@@ -154,17 +109,11 @@ def get_downstream_dependencies(
     return downstream_depths
 
 
-def find_single_points_of_failure(G: nx.DiGraph) -> List[str]:
-    """Identify potential single points of failure (SPOFs) in the graph topology.
-
-    A node is a topological SPOF if its removal disconnects other nodes or if
-    multiple services critically depend solely on it without alternative paths.
-    """
-    spofs: List[str] = []
+def find_single_points_of_failure(G: nx.DiGraph) -> list[str]:
+    spofs: list[str] = []
     if len(G) < 3:
         return spofs
 
-    # Undirected projection to check articulation points (bridges/cut vertices)
     UG = G.to_undirected()
     try:
         articulation_points = list(nx.articulation_points(UG))
@@ -172,7 +121,6 @@ def find_single_points_of_failure(G: nx.DiGraph) -> List[str]:
     except Exception:
         pass
 
-    # High in-degree bottlenecks (nodes relied upon by > 40% of services)
     num_nodes = len(G)
     for node_id in G.nodes:
         in_deg = G.in_degree(node_id)
@@ -182,8 +130,7 @@ def find_single_points_of_failure(G: nx.DiGraph) -> List[str]:
     return spofs
 
 
-def calculate_node_centrality(G: nx.DiGraph) -> Dict[str, float]:
-    """Calculate normalized degree and betweenness centrality for all nodes."""
+def calculate_node_centrality(G: nx.DiGraph) -> dict[str, float]:
     if not G.nodes:
         return {}
 
@@ -192,9 +139,8 @@ def calculate_node_centrality(G: nx.DiGraph) -> Dict[str, float]:
         in_degree = nx.in_degree_centrality(G)
         out_degree = nx.out_degree_centrality(G)
 
-        combined: Dict[str, float] = {}
+        combined: dict[str, float] = {}
         for n in G.nodes:
-            # Weighted formula emphasizing in-degree dependency and betweenness transit
             combined[n] = round(
                 0.5 * in_degree.get(n, 0.0) + 0.3 * betweenness.get(n, 0.0) + 0.2 * out_degree.get(n, 0.0),
                 4,
