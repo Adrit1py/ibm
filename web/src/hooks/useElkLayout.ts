@@ -5,14 +5,14 @@ import type { SystemNode, SystemEdge } from '../../../shared/types/digital_twin'
 
 const elk = new ELK();
 
-const NODE_WIDTH = 200;
-const NODE_HEIGHT = 70;
+const NODE_WIDTH = 220;
+const NODE_HEIGHT = 75;
 
 const getStatusBorder = (status: SystemNode['status']) => {
   switch (status) {
-    case 'failed': return '#da1e28'; // IBM Red 60
-    case 'degraded': return '#f1c21b'; // IBM Yellow 30
-    case 'healthy': default: return '#24a148'; // IBM Green 50
+    case 'failed': return '#dc2626'; // Red 600
+    case 'degraded': return '#f59e0b'; // Amber 500
+    case 'healthy': default: return '#059669'; // Emerald 600
   }
 };
 
@@ -30,8 +30,8 @@ export function useElkLayout(domainNodes: SystemNode[], domainEdges: SystemEdge[
       layoutOptions: {
         'elk.algorithm': 'layered',
         'elk.direction': 'DOWN',
-        'elk.spacing.nodeNode': '60',
-        'elk.layered.spacing.nodeNodeBetweenLayers': '90',
+        'elk.spacing.nodeNode': '70',
+        'elk.layered.spacing.nodeNodeBetweenLayers': '100',
       },
       children: domainNodes.map((n) => ({ id: n.id, width: NODE_WIDTH, height: NODE_HEIGHT })),
       edges: domainEdges.map((e) => ({ id: e.id, sources: [e.source], targets: [e.target] })),
@@ -46,20 +46,20 @@ export function useElkLayout(domainNodes: SystemNode[], domainEdges: SystemEdge[
           return {
             id: node.id,
             position: { x: elkNode?.x || 0, y: elkNode?.y || 0 },
-            data: { label: `${node.label}\n[${node.type}]` },
+            data: { label: `${node.label}\n[${node.type.toUpperCase()}]` },
             style: {
               backgroundColor: '#ffffff',
-              color: '#161616', // Gray 100
-              border: `1px solid #c6c6c6`, // Gray 30
-              borderLeft: `6px solid ${statusColor}`, // Thick left status border
-              borderRadius: '0px', // Strict flat UI
-              padding: '12px 16px',
-              fontFamily: 'monospace',
+              color: '#0f172a', // Navy text
+              border: `1px solid #e2e8f0`,
+              borderLeft: `5px solid ${statusColor}`,
+              borderRadius: '6px',
+              padding: '14px 16px',
+              fontFamily: '"JetBrains Mono", monospace',
               fontSize: '12px',
-              fontWeight: '600',
+              fontWeight: '700',
               textAlign: 'left',
               width: NODE_WIDTH,
-              boxShadow: 'none',
+              boxShadow: node.status === 'failed' ? '0 10px 25px -5px rgba(220, 38, 38, 0.3)' : '0 1px 3px rgba(0,0,0,0.05)',
             },
           };
         });
@@ -70,12 +70,12 @@ export function useElkLayout(domainNodes: SystemNode[], domainEdges: SystemEdge[
           target: edge.target,
           animated: edge.isFailing,
           style: {
-            stroke: edge.isFailing ? '#da1e28' : '#c6c6c6', 
+            stroke: edge.isFailing ? '#dc2626' : '#cbd5e1', // Red or Slate-300
             strokeWidth: edge.isFailing ? 3 : 2,
           },
           markerEnd: {
             type: MarkerType.ArrowClosed,
-            color: edge.isFailing ? '#da1e28' : '#c6c6c6',
+            color: edge.isFailing ? '#dc2626' : '#cbd5e1',
           },
         }));
 
