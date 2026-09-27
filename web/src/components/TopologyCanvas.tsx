@@ -12,31 +12,23 @@ interface TopologyCanvasProps {
 export default function TopologyCanvas({ nodes, edges }: TopologyCanvasProps) {
   const { layoutedNodes, layoutedEdges, isLayingOut } = useElkLayout(nodes, edges);
 
-  if (isLayingOut) {
-    return (
-      <div className="w-full h-full flex items-center justify-center text-slate-500 font-mono text-sm">
-        Calculating architecture layout...
-      </div>
-    );
-  }
+  if (isLayingOut) return null;
 
   return (
-    <div className="w-full h-full transition-opacity duration-300">
+    <div className="w-full h-full bg-ibm-gray10">
       <ReactFlow
         nodes={layoutedNodes}
         edges={layoutedEdges}
         fitView
-        fitViewOptions={{ padding: 0.2, duration: 800 }}
+        fitViewOptions={{ padding: 0.2 }}
         proOptions={{ hideAttribution: true }}
-        nodesDraggable={true}
       >
-        <Background color="#cbd5e1" gap={20} size={1} />
-        {/* Light theme controls and minimap */}
-        <Controls className="bg-white border-slate-200 fill-slate-700 shadow-sm" />
+        <Background color="#e0e0e0" gap={24} size={2} />
+        <Controls className="bg-white border border-ibm-gray30 fill-ibm-gray100" />
         <MiniMap 
-          nodeColor={(n) => n.style?.borderColor as string || '#e2e8f0'}
-          maskColor="rgba(248, 250, 252, 0.7)"
-          className="bg-white border border-slate-200 shadow-sm rounded-md"
+          nodeColor={(n) => n.style?.borderLeft?.toString().split(' ')[2] || '#e0e0e0'}
+          maskColor="rgba(244, 244, 244, 0.7)"
+          className="bg-white border border-ibm-gray30"
         />
       </ReactFlow>
     </div>
