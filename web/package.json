@@ -1,4 +1,3 @@
-<file path="web/package.json">
 {
   "name": "bob-simulator-web",
   "version": "1.0.0",
@@ -29,4 +28,3 @@
     "typescript": "^5.0.0"
   }
 }
-</file>
