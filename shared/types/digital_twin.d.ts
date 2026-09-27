@@ -1,11 +1,15 @@
-
-export type ComponentStatus = 'healthy' | 'degraded' | 'failed';
+export type ComponentStatus = 'healthy' | 'degraded' | 'failing' | 'dead' | 'recovering';
 
 export interface SystemNode {
   id: string;
-  type: 'service' | 'database' | 'queue' | 'cache' | 'external';
-  label: string;
+  name: string;
+  type: string;
   status: ComponentStatus;
+  latency_multiplier: number;
+  error_rate: number;
+  is_failing: boolean;
+  recovering: boolean;
+  failure_reason?: string | null;
   metadata?: Record<string, any>;
 }
 
@@ -13,8 +17,10 @@ export interface SystemEdge {
   id: string;
   source: string;
   target: string;
-  type: 'sync' | 'async' | 'failover';
-  isFailing: boolean;
+  type: string;
+  is_failing: boolean;
+  latency_ms?: number | null;
+  mechanism?: string | null;
 }
 
 export interface SimulationTick {
@@ -22,6 +28,7 @@ export interface SimulationTick {
   nodes: SystemNode[];
   edges: SystemEdge[];
   agentLogs: string[];
+  summary?: string | null;
 }
 
 export interface SimulationResult {
