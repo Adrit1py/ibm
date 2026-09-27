@@ -1,0 +1,14 @@
+{
+  "builds": [
+    {
+      "src": "core/engine/api.py",
+      "use": "@vercel/python"
+    }
+  ],
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/core/engine/api.py"
+    }
+  ]
+}
