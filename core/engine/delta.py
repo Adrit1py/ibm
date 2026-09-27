@@ -1,12 +1,6 @@
-"""Rerun and delta comparator engine for Person 3.
-
-Calculates exact quantitative differentials between baseline (unpatched) failure runs
-and patched (remediated) rerun simulations.
-"""
+"""Rerun and delta comparator engine for Person 3."""
 
 from __future__ import annotations
-
-from typing import List, Set
 
 from .models import (
     DeltaComparisonReport,
@@ -18,15 +12,6 @@ def compare_runs(
     baseline: SimulationRunResult,
     patched: SimulationRunResult,
 ) -> DeltaComparisonReport:
-    """Compare baseline failure run against patched rerun and generate a quantitative delta report.
-
-    Args:
-        baseline: Pre-patch baseline simulation run result.
-        patched: Post-patch rerun simulation run result.
-
-    Returns:
-        DeltaComparisonReport containing exact score gains, blast-radius reduction, and saved components.
-    """
     baseline_score = baseline.resilience_score.overall_resilience_score
     patched_score = patched.resilience_score.overall_resilience_score
     score_gain = round(patched_score - baseline_score, 1)
@@ -35,18 +20,14 @@ def compare_runs(
     patched_br = patched.blast_radius.blast_radius_pct
     br_reduction = round(baseline_br - patched_br, 2)
 
-    # Relative blast radius reduction
     if baseline_br > 0:
         rel_br_reduction_pct = round((br_reduction / baseline_br) * 100.0, 1)
     else:
         rel_br_reduction_pct = 0.0
 
-    # Determine saved nodes
-    # Baseline failing/dead nodes vs patched healthy/shielded nodes
     baseline_affected = set(baseline.blast_radius.direct_node_ids + baseline.blast_radius.cascaded_node_ids)
     patched_affected = set(patched.blast_radius.direct_node_ids + patched.blast_radius.cascaded_node_ids)
 
-    # Nodes that are completely shielded or no longer in dead/failing state
     baseline_dead = set()
     for tick in baseline.timeline:
         for n in tick.nodes:
@@ -62,12 +43,8 @@ def compare_runs(
     saved_nodes = sorted(list(baseline_affected - patched_affected | (baseline_dead - patched_dead)))
     still_affected = sorted(list(patched_affected))
 
-    # Identify severed chains
-    severed_chains: List[str] = []
-    # If patched timeline has fewer failing edges / shorter cascade
-    severed_chains.append("cascade-isolation-boundary")
+    severed_chains: list[str] = ["cascade-isolation-boundary"]
 
-    # Latency & Error Rate comparisons across last ticks
     base_last_tick = baseline.timeline[-1] if baseline.timeline else None
     patch_last_tick = patched.timeline[-1] if patched.timeline else None
 
@@ -81,7 +58,6 @@ def compare_runs(
 
     patches_applied = [p.title or p.id for p in baseline.suggested_patches]
 
-    # Formulate Executive Summary
     summary_parts = [
         f"Resilience score increased from {baseline_score:.1f} ({baseline.resilience_score.letter_grade}) "
         f"to {patched_score:.1f} ({patched.resilience_score.letter_grade}) (+{score_gain:.1f} pts).",
