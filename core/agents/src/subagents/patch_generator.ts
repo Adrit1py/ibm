@@ -51,8 +51,12 @@ export class PatchGeneratorAgent {
 
     for (const rc of rootCauses) {
       const node = nodeMap.get(rc.node_id);
+      const rawSource = (node as any)?.source_files?.[0];
+      const langHint = (node as any)?.language;
+      const defaultExt = langHint === 'python' ? '.py' : langHint === 'go' ? '.go' : langHint === 'java' ? '.java' : '.ts';
+      const cleanId = rc.node_id.replace(/^[a-z_]+:/i, '');
       const targetFile =
-        rc.file_target ?? node?.file_path ?? `src/services/${rc.node_id}.ts`;
+        rc.file_target ?? node?.file_path ?? rawSource ?? `src/services/${cleanId}${defaultExt}`;
       const nodeName = node?.name ?? rc.node_id;
 
       const patch = this.buildPatchForVulnerability(rc, targetFile, nodeName);
@@ -985,7 +989,7 @@ export class PatchGeneratorAgent {
     ].join('\n');
 
     return {
-      id: `patch-spof-${rc.id}`,
+      id: `patch-spof-fb-${rc.id}`,
       root_cause_id: rc.id,
       target_node_id: rc.node_id,
       target_file: targetFile,

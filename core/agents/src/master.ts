@@ -70,20 +70,25 @@ export class MasterAgent {
     // If a timeout is requested, wrap execution in a timeout race
     if (options?.timeout_ms && options.timeout_ms > 0) {
       const timeoutMs = options.timeout_ms;
-      return Promise.race([
-        this.executePipeline(digitalTwin, attackPrompt, options),
-        new Promise<FailureAnalysisReport>((_, reject) =>
-          setTimeout(
-            () =>
-              reject(
-                new Error(
-                  `MasterAgent: Failure analysis exceeded timeout budget of ${timeoutMs}ms`,
+      let timer: NodeJS.Timeout | undefined;
+      try {
+        return await Promise.race([
+          this.executePipeline(digitalTwin, attackPrompt, options),
+          new Promise<FailureAnalysisReport>((_, reject) => {
+            timer = setTimeout(
+              () =>
+                reject(
+                  new Error(
+                    `MasterAgent: Failure analysis exceeded timeout budget of ${timeoutMs}ms`,
+                  ),
                 ),
-              ),
-            timeoutMs,
-          ),
-        ),
-      ]);
+              timeoutMs,
+            );
+          }),
+        ]);
+      } finally {
+        if (timer) clearTimeout(timer);
+      }
     }
 
     return this.executePipeline(digitalTwin, attackPrompt, options);
@@ -221,7 +226,8 @@ export class MasterAgent {
 
     // Priority 1: Match by node ID or node name directly in the raw prompt
     for (const node of digitalTwin.nodes) {
-      const idMatch = promptLower.includes(node.id.toLowerCase());
+      const bareId = node.id.replace(/^[a-z_]+:/i, '').toLowerCase();
+      const idMatch = promptLower.includes(node.id.toLowerCase()) || promptLower.includes(bareId);
       const nameMatch = promptLower.includes(node.name.toLowerCase());
 
       if (idMatch || nameMatch) {
@@ -235,9 +241,10 @@ export class MasterAgent {
     if (parserTargets.length > 0) {
       for (const node of digitalTwin.nodes) {
         const nodeIdLower = node.id.toLowerCase();
+        const bareId = node.id.replace(/^[a-z_]+:/i, '').toLowerCase();
         const nodeNameLower = node.name.toLowerCase();
         for (const target of parserTargets) {
-          if (nodeIdLower.includes(target) || nodeNameLower.includes(target)) {
+          if (nodeIdLower.includes(target) || bareId.includes(target) || nodeNameLower.includes(target)) {
             matchedNodeIds.push(node.id);
             break;
           }

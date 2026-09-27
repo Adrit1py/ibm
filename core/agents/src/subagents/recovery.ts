@@ -75,7 +75,7 @@ export class RecoverySelfHealingSubagent {
     for (const node of digitalTwin.nodes) {
       if (!affectedSet.has(node.id)) continue;
 
-      const config = node.config ?? {};
+      const config = (node.config ?? (node.metadata?.['config'] as Record<string, unknown>) ?? {}) as NonNullable<DigitalTwinNode['config']>;
       const hasCircuitBreaker = config.circuit_breaker === true;
       const hasFallback = config.fallback_enabled === true;
 
