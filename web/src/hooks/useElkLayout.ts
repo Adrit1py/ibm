@@ -1,3 +1,4 @@
+// web/src/hooks/useElkLayout.ts
 import { useState, useEffect } from 'react';
 import ELK from 'elkjs/lib/elk.bundled';
 import { Node as RFNode, Edge as RFEdge, MarkerType } from 'reactflow';
@@ -9,11 +10,12 @@ const elk = new ELK();
 const NODE_WIDTH = 180;
 const NODE_HEIGHT = 80;
 
+// Updated to match the new Light Mode palette
 const getStatusColor = (status: SystemNode['status']) => {
   switch (status) {
-    case 'failed': return '#e11d48';
-    case 'degraded': return '#f59e0b';
-    case 'healthy': default: return '#10b981';
+    case 'failed': return '#e11d48'; // Rose-600
+    case 'degraded': return '#f59e0b'; // Amber-500
+    case 'healthy': default: return '#10b981'; // Emerald-500
   }
 };
 
@@ -59,15 +61,16 @@ export function useElkLayout(domainNodes: SystemNode[], domainEdges: SystemEdge[
             position: { x: elkNode?.x || 0, y: elkNode?.y || 0 },
             data: { label: `${node.label}\n(${node.type})` },
             style: {
-              backgroundColor: '#1e293b',
-              color: '#f8fafc',
+              backgroundColor: '#ffffff', // White nodes for light theme
+              color: '#0f172a', // Slate-900 text
               border: `2px solid ${statusColor}`,
               borderRadius: '8px',
               padding: '12px',
               fontWeight: 'bold',
               textAlign: 'center',
               width: NODE_WIDTH,
-              boxShadow: node.status === 'failed' ? '0 0 15px rgba(225, 29, 72, 0.4)' : 'none',
+              // Softer shadow for healthy nodes, glowing red for failed
+              boxShadow: node.status === 'failed' ? '0 4px 15px rgba(225, 29, 72, 0.2)' : '0 1px 3px rgba(0,0,0,0.1)',
             },
           };
         });
@@ -78,12 +81,13 @@ export function useElkLayout(domainNodes: SystemNode[], domainEdges: SystemEdge[
           target: edge.target,
           animated: edge.isFailing,
           style: {
-            stroke: edge.isFailing ? '#e11d48' : '#64748b',
+            // Light gray for healthy edges, red for failing
+            stroke: edge.isFailing ? '#e11d48' : '#94a3b8', 
             strokeWidth: edge.isFailing ? 3 : 2,
           },
           markerEnd: {
             type: MarkerType.ArrowClosed,
-            color: edge.isFailing ? '#e11d48' : '#64748b',
+            color: edge.isFailing ? '#e11d48' : '#94a3b8',
           },
         }));
 
